@@ -10,9 +10,11 @@ const Login = () => {
     email: '',
     password: '',
   });
+  const [error, setError] = useState(''); // Thêm state để hiển thị lỗi
 
   const loginMutation = useMutation({
     mutationFn: async (data) => {
+      // Sử dụng API login tự động phân role
       const response = await axios.post(
         'http://localhost:8080/workhub/api/v1/login',
         null,
@@ -24,23 +26,32 @@ const Login = () => {
           withCredentials: true,
         }
       );
-      return response.data;
+      return { token: response.data };
     },
-    onSuccess: (data) => {
-      if (data === 'Invalid credentials') {
-        alert('Email hoặc mật khẩu không đúng');
-      } else {
+    onSuccess: (result) => {
+      setError('');
+      try {
+        const token = result.token;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        localStorage.setItem('token', token);
+        navigate('/');
+      } catch (e) {
+        alert('Đăng nhập thành công nhưng không xác định được role!');
         navigate('/');
       }
     },
     onError: (error) => {
-      console.error('Login failed:', error);
-      alert('Đăng nhập thất bại. Vui lòng thử lại sau.');
+      let msg = 'Đăng nhập thất bại. Vui lòng thử lại sau.';
+      if (error.response && error.response.data && error.response.data.message) {
+        msg = error.response.data.message;
+      }
+      setError(msg);
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
     loginMutation.mutate(formData);
   };
 
@@ -106,33 +117,9 @@ const Login = () => {
                 />
               </div>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  Ghi nhớ đăng nhập
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-medium text-primary hover:text-primary-dark"
-                >
-                  Quên mật khẩu?
-                </a>
-              </div>
-            </div>
-
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
             <div>
               <button
                 type="submit"
@@ -196,4 +183,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

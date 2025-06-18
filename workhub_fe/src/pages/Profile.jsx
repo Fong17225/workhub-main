@@ -17,6 +17,16 @@ import {
 } from '@mui/icons-material';
 import PersonIcon from '@mui/icons-material/Person';
 import ArticleIcon from '@mui/icons-material/Article';
+import Dashboard from './Dashboard';
+
+const parseJwt = (token) => {
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -26,72 +36,109 @@ const Profile = () => {
   const [newResumeFile, setNewResumeFile] = useState(null);
   const [selectedSkillIds, setSelectedSkillIds] = useState([]);
 
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ['profile'],
+  // Lấy user info từ token
+  const token = localStorage.getItem('token');
+  const user = parseJwt(token);
+
+  // Query để lấy danh sách công việc đã lưu (API mới: /saved-jobs, không truyền userId, backend lấy từ JWT)
+  const { data: savedJobs, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery({
+    queryKey: ['savedJobs'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/me', {
-        withCredentials: true
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/saved-jobs', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
-    staleTime: Infinity,
+    enabled: !!user,
   });
 
-  const { data: savedJobs, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery({
-    queryKey: ['savedJobs', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/saved-jobs?userId=${user.id}`);
-      return response.data;
-    },
-    enabled: !!user?.id,
-  });
-
-  // Query để lấy danh sách công việc đã ứng tuyển
+  // Query để lấy danh sách công việc đã ứng tuyển (API mới: /applications/appliedJobs, không truyền userId)
   const { data: appliedJobs, isLoading: isLoadingApplied } = useQuery({
-    queryKey: ['appliedJobs', user?.id],
+    queryKey: ['appliedJobs'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/applications/users/${user.id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/applications/appliedJobs', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
-  // Query để lấy danh sách CV của người dùng
+  // Query để lấy danh sách CV của người dùng (API mới: /resumes/me)
   const { data: resumes, isLoading: isLoadingResumes, refetch: refetchResumes } = useQuery({
-    queryKey: ['userResumes', user?.id],
+    queryKey: ['userResumes'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${user.id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/resumes/me', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
+  });
+
+  // Mutation để lưu công việc
+  const saveJobMutation = useMutation({
+    mutationFn: async (jobId) => {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:8080/workhub/api/v1/saved-jobs', null, {
+        params: { jobId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Refetch saved jobs after saving
+      refetchSavedJobs();
+      alert('Đã lưu công việc thành công!');
+    },
+    onError: (error) => {
+      alert('Lưu công việc thất bại!');
+    },
+  });
+
+  // Mutation để bỏ lưu công việc
+  const unsaveJobMutation = useMutation({
+    mutationFn: async (jobId) => {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete('http://localhost:8080/workhub/api/v1/saved-jobs', {
+        params: { jobId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      refetchSavedJobs();
+      alert('Đã bỏ lưu công việc!');
+    },
+    onError: (error) => {
+      alert('Bỏ lưu công việc thất bại!');
+    },
   });
 
   // Mutation để tải lên CV mới
   const createResumeMutation = useMutation({
     mutationFn: async (formData) => {
-      const response = await axios.post(`http://localhost:8080/workhub/api/v1/resumes/${user.id}`, formData, {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:8080/workhub/api/v1/resumes', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        withCredentials: true,
       });
       return response.data;
     },
     onSuccess: () => {
-      // Refetch resumes after successful upload
       refetchResumes();
-      // Clear form fields
       setNewResumeTitle('');
       setNewResumeContent('');
       setNewResumeFile(null);
-      setSelectedSkillIds([]); // Clear selected skills
+      setSelectedSkillIds([]);
       alert('CV đã được tải lên thành công!');
     },
     onError: (error) => {
-      console.error('Lỗi tải lên CV:', error);
       alert('Đã xảy ra lỗi khi tải lên CV.');
     },
   });
@@ -99,50 +146,34 @@ const Profile = () => {
   // Mutation để xóa CV
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId) => {
-      const response = await axios.delete(`http://localhost:8080/workhub/api/v1/resumes/${user.id}/${resumeId}`, {
-        withCredentials: true,
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
     onSuccess: () => {
-      // Refetch resumes after successful deletion
       refetchResumes();
       alert('CV đã được xóa thành công!');
     },
     onError: (error) => {
-      console.error('Lỗi xóa CV:', error);
       alert('Đã xảy ra lỗi khi xóa CV.');
     },
   });
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!user) {
       navigate('/login');
     }
-  }, [isLoading, user, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
-            <div className="h-32 bg-gray-200 rounded-lg mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="md:col-span-1">
-                <div className="h-64 bg-gray-200 rounded-lg"></div>
-              </div>
-              <div className="md:col-span-3">
-                <div className="h-96 bg-gray-200 rounded-lg"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }, [user, navigate]);
 
   if (!user) {
     return null;
+  }
+
+  // Nếu là recruiter thì hiển thị dashboard trong profile
+  if (user.role === 'recruiter') {
+    return <Dashboard />;
   }
 
   // Hàm để hiển thị trạng thái ứng tuyển với màu sắc tương ứng
@@ -206,35 +237,38 @@ const Profile = () => {
 
   // Hàm xử lý tải về CV (sẽ implement sau)
   const handleDownloadResume = async (resumeId, resumeTitle) => {
-    // alert('Chức năng tải về đang được phát triển.');
-    // Implementation for download will go here
     try {
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/applications/resumes/${resumeId}/download`, {
-        responseType: 'blob', // Important for downloading files
-        withCredentials: true,
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}/file-base64`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
-      // Create a blob from the response data
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-
-      // Create a link element
+      // Giả sử backend trả về base64 string
+      const base64 = response.data;
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      // Extract file extension from content-type
-      const fileExtension = response.headers['content-type'] ? response.headers['content-type'].split('/')[1] : 'pdf';
-      link.download = `${resumeTitle || 'CV'}.${fileExtension}`; // Set filename with dynamic extension
-
-      // Append to the body and click the link to trigger download
+      link.href = `data:application/pdf;base64,${base64}`;
+      link.download = `${resumeTitle || 'CV'}.pdf`;
       document.body.appendChild(link);
       link.click();
-
-      // Clean up
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(link.href);
-
     } catch (error) {
-      console.error('Lỗi tải về CV:', error);
       alert('Đã xảy ra lỗi khi tải về CV.');
+    }
+  };
+
+  // Xem trực tiếp CV trên web (PDF viewer)
+  const handleViewResume = async (resumeId, resumeTitle) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}/file-base64`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const base64 = response.data;
+      const pdfWindow = window.open('');
+      pdfWindow.document.write(
+        `<title>${resumeTitle || 'CV'}</title><iframe width='100%' height='100%' src='data:application/pdf;base64,${base64}'></iframe>`
+      );
+    } catch (error) {
+      alert('Đã xảy ra lỗi khi xem CV.');
     }
   };
 
@@ -248,9 +282,8 @@ const Profile = () => {
               <PersonIcon className="h-16 w-16 text-gray-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{user.fullName}</h1>
-              <p className="text-gray-600">{user.email}</p>
-              <p className="text-gray-600">{user.phone}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{user.sub}</h1>
+              
             </div>
           </div>
         </div>
@@ -433,19 +466,19 @@ const Profile = () => {
                 ) : savedJobs?.length > 0 ? (
                   <div className="space-y-4">
                     {savedJobs.map((savedJob) => (
-                      <div key={savedJob.id} className="border-b pb-4 last:border-b-0">
+                      <div key={savedJob.id || savedJob.job?.id} className="border-b pb-4 last:border-b-0">
                         <h3 className="font-semibold">
-                          <Link to={`/jobs/${savedJob.jobId}`} className="hover:text-primary">
-                            {savedJob.jobTitle || '[Tiêu đề trống]'}
+                          <Link to={`/jobs/${savedJob.job?.id}`} className="hover:text-primary">
+                            {savedJob.job?.title || '[Tiêu đề trống]'}
                           </Link>
                         </h3>
-                        <p className="text-gray-600 text-sm">{savedJob.companyName || '[Công ty ẩn danh]'}</p>
+                        <p className="text-gray-600 text-sm">{savedJob.job?.recruiter?.companyName || '[Công ty ẩn danh]'}</p>
                         <div className="flex items-center text-gray-500 mt-2">
                           <LocationOn className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                          <span>Địa điểm: {savedJob.location || 'N/A'}</span>
+                          <span>Địa điểm: {savedJob.job?.location || 'N/A'}</span>
                         </div>
                         <div className="flex items-center text-gray-500 mt-2">
-                          <span>Mức lương: {savedJob.salaryRange || 'Thương lượng'}</span>
+                          <span>Mức lương: {savedJob.job?.salaryRange || 'Thương lượng'}</span>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-2">
                           <span>Đã lưu vào: {new Date(savedJob.savedAt).toLocaleDateString('vi-VN')}</span>
@@ -487,6 +520,12 @@ const Profile = () => {
                             className="text-red-600 hover:underline text-sm"
                           >
                             Xóa
+                          </button>
+                          <button
+                            onClick={() => handleViewResume(resume.id, resume.title)}
+                            className="text-primary hover:underline text-sm"
+                          >
+                            Xem CV
                           </button>
                         </div>
                       </div>
@@ -562,21 +601,21 @@ const Profile = () => {
                 ) : appliedJobs?.length > 0 ? (
                   <div className="space-y-4">
                     {appliedJobs.map((application) => (
-                      <div key={application.id} className="border-b pb-4 last:border-b-0">
+                      <div key={application.applicationId} className="border-b pb-4 last:border-b-0">
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="font-semibold">
-                              <Link to={`/jobs/${application.jobId}`} className="hover:text-primary">
-                                {application.jobTitle}
+                              <Link to={`/jobs/${application.job?.id}`} className="hover:text-primary">
+                                {application.job?.title || '[Tiêu đề trống]'}
                               </Link>
                             </h3>
-                            <p className="text-gray-600 text-sm mt-1">{application.companyName}</p>
+                            <p className="text-gray-600 text-sm">{application.job?.recruiter?.companyName || '[Công ty ẩn danh]'}</p>
                             <div className="flex items-center text-gray-500 mt-2">
                               <LocationOn className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <span>Địa điểm: {application.location}</span>
+                              <span>Địa điểm: {application.job?.location || 'N/A'}</span>
                             </div>
                             <div className="flex items-center text-gray-500 mt-2">
-                              <span>Mức lương: {application.salaryRange}</span>
+                              <span>Mức lương: {application.job?.salaryRange || 'Thương lượng'}</span>
                             </div>
                           </div>
                           <div className="flex flex-col items-end">
@@ -589,6 +628,12 @@ const Profile = () => {
                         <div className="mt-4">
                           <h4 className="text-sm font-medium text-gray-700">CV đã nộp:</h4>
                           <p className="text-sm text-gray-600 mt-1">{application.resumeTitle}</p>
+                        </div>
+                        <div className="mt-2">
+                          <h4 className="text-sm font-medium text-gray-700">Giờ phỏng vấn:</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {application.interviewTime ? new Date(application.interviewTime).toLocaleString('vi-VN') : 'Chưa chọn'}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -639,4 +684,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

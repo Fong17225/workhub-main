@@ -41,7 +41,10 @@ function Jobs() {
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
     enabled: true,
@@ -50,7 +53,10 @@ function Jobs() {
   const { data: categories, isLoading: isLoadingCategories, isError: isErrorCategories } = useQuery({
     queryKey: ['jobCategories'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-categories');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-categories', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     }
   });
@@ -58,7 +64,10 @@ function Jobs() {
   const { data: types, isLoading: isLoadingTypes, isError: isErrorTypes } = useQuery({
     queryKey: ['jobTypes'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-types');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-types', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     }
   });
@@ -66,7 +75,10 @@ function Jobs() {
   const { data: positions, isLoading: isLoadingPositions, isError: isErrorPositions } = useQuery({
     queryKey: ['jobPositions'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-positions');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-positions', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     }
   });
@@ -74,7 +86,10 @@ function Jobs() {
   const { data: skills, isLoading: isLoadingSkills, isError: isErrorSkills } = useQuery({
     queryKey: ['skills'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/skill');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/skill', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     }
   });
@@ -263,4 +278,4 @@ function Jobs() {
   );
 }
 
-export default Jobs; 
+export default Jobs;

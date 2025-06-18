@@ -9,14 +9,17 @@ const JobDetails = () => {
   const queryClient = useQueryClient();
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState(null);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
+      // Lấy user từ token, không gọi API /me
+      const token = localStorage.getItem('token');
+      if (!token) return null;
       try {
-        const response = await axios.get('http://localhost:8080/workhub/api/v1/me', { withCredentials: true });
-        return response.data;
-      } catch (error) {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch {
         return null;
       }
     },
@@ -28,18 +31,34 @@ const JobDetails = () => {
     queryKey: ['resumes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${user.id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/resumes/me', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
     enabled: !!user?.id,
   });
 
+  // Lấy danh sách slot phỏng vấn còn trống theo job
+  const { data: slots, isLoading: isLoadingSlots } = useQuery({
+    queryKey: ['slots', id],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`http://localhost:8080/workhub/api/v1/interview-slots/by-job/${id}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      return res.data.filter(slot => !slot.booked);
+    },
+    enabled: showApplyModal && !!id,
+  });
+
   // Mutation để nộp CV
   const applyJobMutation = useMutation({
-    mutationFn: async ({ jobId, resumeId, candidateId }) => {
+    mutationFn: async ({ jobId, resumeId }) => {
+      const token = localStorage.getItem('token');
       const response = await axios.post(`http://localhost:8080/workhub/api/v1/applications/${jobId}`, null, {
-        params: { resumeId, candidateId },
-        withCredentials: true,
+        params: { resumeId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
@@ -53,29 +72,55 @@ const JobDetails = () => {
     },
   });
 
+  // Mutation để nộp CV và chọn slot
+  const applyJobWithSlotMutation = useMutation({
+    mutationFn: async ({ jobId, resumeId, slotId }) => {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`http://localhost:8080/workhub/api/v1/applications/${jobId}/with-slot`, null, {
+        params: { resumeId, slotId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      setShowApplyModal(false);
+      alert('Nộp CV thành công!');
+    },
+    onError: (error) => {
+      alert('Có lỗi xảy ra khi nộp CV hoặc chọn slot.');
+    },
+  });
+
   const { data: job, isLoading, isError } = useQuery({
     queryKey: ['job', id],
     queryFn: async () => {
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs/detail/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
     enabled: !!id,
   });
 
   const { data: savedJobs, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery({
-    queryKey: ['savedJobs', user?.id],
+    queryKey: ['savedJobs'],
     queryFn: async () => {
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/saved-jobs?userId=${user.id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/saved-jobs', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   const saveJobMutation = useMutation({
     mutationFn: async (jobId) => {
+      const token = localStorage.getItem('token');
       const response = await axios.post('http://localhost:8080/workhub/api/v1/saved-jobs', null, {
-        params: { userId: user.id, jobId: jobId },
-        withCredentials: true,
+        params: { jobId: jobId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
@@ -90,9 +135,10 @@ const JobDetails = () => {
 
   const unsaveJobMutation = useMutation({
     mutationFn: async (jobId) => {
+      const token = localStorage.getItem('token');
       const response = await axios.delete('http://localhost:8080/workhub/api/v1/saved-jobs', {
-        params: { userId: user.id, jobId: jobId },
-        withCredentials: true,
+        params: { jobId: jobId },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
@@ -105,7 +151,14 @@ const JobDetails = () => {
     },
   });
 
-  const isJobSaved = savedJobs?.some(savedJob => savedJob.jobId === parseInt(id));
+  // Sửa lại hàm kiểm tra job đã lưu
+  const isJobSaved = savedJobs?.some(savedJob => {
+    // savedJob có thể là object có job hoặc jobId tuỳ backend
+    if (savedJob.job) {
+      return savedJob.job.id === parseInt(id);
+    }
+    return savedJob.jobId === parseInt(id);
+  });
 
   const handleSaveUnsaveClick = () => {
     if (!user) {
@@ -137,16 +190,20 @@ const JobDetails = () => {
     setShowApplyModal(true);
   };
 
+  // Sửa lại handleSubmitApplication để gửi kèm slotId
   const handleSubmitApplication = () => {
     if (!selectedResumeId) {
       alert('Vui lòng chọn một CV để nộp.');
       return;
     }
-
-    applyJobMutation.mutate({
+    if (!selectedSlotId) {
+      alert('Vui lòng chọn một khung giờ phỏng vấn.');
+      return;
+    }
+    applyJobWithSlotMutation.mutate({
       jobId: parseInt(id),
       resumeId: selectedResumeId,
-      candidateId: user.id,
+      slotId: selectedSlotId,
     });
   };
 
@@ -157,7 +214,10 @@ const JobDetails = () => {
       if (job?.category?.id) {
         params.append('categoryId', job.category.id);
       }
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       return response.data.filter(similarJob => similarJob.id !== job.id).slice(0, 5);
     },
     enabled: !!job,
@@ -203,14 +263,14 @@ const JobDetails = () => {
                   {!isLoading && user && (
                     <button
                       onClick={handleSaveUnsaveClick}
-                      className="text-gray-600 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`text-gray-600 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed border px-4 py-2 rounded-lg ${isJobSaved ? 'bg-primary/10 text-primary border-primary' : ''}`}
                       aria-label={isJobSaved ? 'Bỏ lưu việc làm' : 'Lưu việc làm'}
                       disabled={saveJobMutation.isLoading || unsaveJobMutation.isLoading}
                     >
                       {saveJobMutation.isLoading || unsaveJobMutation.isLoading ? (
                         'Đang xử lý...'
                       ) : isJobSaved ? (
-                        'Đã lưu'
+                        'Bỏ lưu việc làm'
                       ) : (
                         'Lưu việc làm'
                       )}
@@ -378,6 +438,24 @@ const JobDetails = () => {
                 Bạn chưa có CV nào. Vui lòng tạo CV trước khi nộp.
               </div>
             )}
+            <h3 className="mt-6 mb-2 font-medium">Chọn khung giờ phỏng vấn</h3>
+            {isLoadingSlots ? (
+              <div>Đang tải khung giờ...</div>
+            ) : slots?.length > 0 ? (
+              <div className="space-y-2">
+                {slots.map(slot => (
+                  <div
+                    key={slot.id}
+                    className={`p-2 border rounded cursor-pointer ${selectedSlotId === slot.id ? 'border-primary bg-primary/10' : 'border-gray-200'}`}
+                    onClick={() => setSelectedSlotId(slot.id)}
+                  >
+                    {slot.startTime ? new Date(slot.startTime).toLocaleString('vi-VN') : 'Chưa xác định'}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500">Không còn khung giờ trống.</div>
+            )}
             <div className="mt-6 flex justify-end space-x-4">
               <button
                 onClick={() => setShowApplyModal(false)}
@@ -400,4 +478,4 @@ const JobDetails = () => {
   );
 };
 
-export default JobDetails; 
+export default JobDetails;

@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
+
+function parseJwt(token) {
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
 
 function Navbar() {
   const navigate = useNavigate();
@@ -15,31 +23,15 @@ function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      try {
-        const response = await axios.get('http://localhost:8080/workhub/api/v1/me', {
-          withCredentials: true
-        });
-        return response.data;
-      } catch (error) {
-        return null;
-      }
-    }
-  });
+  // Lấy user info từ token
+  const token = localStorage.getItem('token');
+  const user = parseJwt(token);
 
   const handleLogout = async () => {
-    try {
-      await axios.post('http://localhost:8080/workhub/api/v1/logout', {}, {
-        withCredentials: true
-      });
-      queryClient.setQueryData(['profile'], null);
-      setIsDropdownOpen(false);
-      navigate('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    localStorage.removeItem('token');
+    queryClient.setQueryData(['profile'], null);
+    setIsDropdownOpen(false);
+    navigate('/');
   };
 
   const handleSearch = (e) => {
@@ -94,7 +86,7 @@ function Navbar() {
               </div>
             </div>
             <div className="ml-4 relative">
-              {!isLoading && user ? (
+              {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -106,13 +98,23 @@ function Navbar() {
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                       <div className="py-1">
-                        <Link
-                          to="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Hồ sơ
-                        </Link>
+                        {user && user.role?.toLowerCase() === 'admin' ? (
+                          <Link
+                            to="/admin-dashboard"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            Dashboard
+                          </Link>
+                        ) : (
+                          <Link
+                            to="/profile"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            Hồ sơ
+                          </Link>
+                        )}
                         <Link
                           to="/settings"
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -120,6 +122,13 @@ function Navbar() {
                         >
                           Cài đặt
                         </Link>
+                        <div className="border-t border-gray-100"></div>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <span className="mr-2">🔔</span> Thông báo
+                        </button>
                         <button
                           onClick={handleLogout}
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
@@ -132,12 +141,20 @@ function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link
-                  to="/login"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                >
-                  Đăng nhập
-                </Link>
+                <div className="flex items-center">
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary bg-white hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ml-2"
+                  >
+                    Đăng ký
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -181,7 +198,7 @@ function Navbar() {
             >
               Tài nguyên
             </Link>
-            {!isLoading && user ? (
+            {user ? (
               <>
                 <Link
                   to="/profile"
@@ -197,6 +214,14 @@ function Navbar() {
                 >
                   Cài đặt
                 </Link>
+                <div className="border-t border-gray-100"></div>
+                <button
+                  className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary flex items-center"
+                  onClick={() => alert('Chức năng thông báo sẽ cập nhật sau!')}
+                >
+                  <span className="mr-2">🔔</span>
+                  Thông báo
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary flex items-center"
@@ -206,13 +231,22 @@ function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Đăng nhập
-              </Link>
+              <div className="flex flex-col">
+                <Link
+                  to="/login"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/register"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-primary bg-white hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Đăng ký
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -221,4 +255,4 @@ function Navbar() {
   );
 }
 
-export default Navbar; 
+export default Navbar;

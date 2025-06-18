@@ -20,7 +20,10 @@ const Home = () => {
   const { data: allJobs, isLoading, isError } = useQuery({
     queryKey: ['allJobs'],
     queryFn: async () => {
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/jobs');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/workhub/api/v1/jobs', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       // Shuffle and take the first 5 jobs
       return response.data.sort(() => 0.5 - Math.random()).slice(0, 3);
     },
@@ -220,4 +223,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;
