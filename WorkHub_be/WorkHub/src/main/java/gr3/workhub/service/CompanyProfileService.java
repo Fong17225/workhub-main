@@ -57,4 +57,26 @@ public class CompanyProfileService {
     public List<CompanyProfile> getAllCompanyProfiles() {
         return companyProfileRepository.findAll();
     }
+    public CompanyProfile updateCompanyProfile(Integer id, CompanyProfileDTO dto) {
+        CompanyProfile company = getCompanyProfileById(id);
+        if (dto.getRecruiterId() != null) {
+            User recruiter = userRepository.findById(dto.getRecruiterId())
+                .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
+            company.setRecruiter(recruiter);
+        }
+        if (dto.getName() != null) company.setName(dto.getName());
+        if (dto.getIndustry() != null) company.setIndustry(dto.getIndustry());
+        if (dto.getLocation() != null) company.setLocation(dto.getLocation());
+        if (dto.getDescription() != null) company.setDescription(dto.getDescription());
+        if (dto.getWebsite() != null) company.setWebsite(dto.getWebsite());
+        if (dto.getLogo() != null) company.setLogo(dto.getLogo());
+        if (dto.getInspection() != null) company.setInspection(CompanyProfile.Inspection.valueOf(dto.getInspection()));
+        if (dto.getStatus() != null) company.setStatus(CompanyProfile.Status.valueOf(dto.getStatus()));
+        if (dto.getInspectionStatus() != null) company.setInspectionStatus(CompanyProfile.InspectionStatus.valueOf(dto.getInspectionStatus()));
+        return companyProfileRepository.save(company);
+    }
+
+    public void deleteCompanyProfile(Integer id) {
+        companyProfileRepository.deleteById(id);
+    }
 }

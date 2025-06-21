@@ -39,7 +39,8 @@ public class JobService {
 
     // Map Job to JobResponse
     private JobResponse toJobResponse(Job job) {
-        CompanyProfile cp = companyProfileRepository.findByRecruiter(job.getRecruiter());
+        List<CompanyProfile> cpList = companyProfileRepository.findByRecruiter(job.getRecruiter());
+        CompanyProfile cp = cpList.isEmpty() ? null : cpList.get(0);
         String companyName = cp != null ? cp.getName() : null;
         String companyLogo = (cp != null && cp.getLogo() != null)
                 ? "data:image/png;base64," + Base64.getEncoder().encodeToString(cp.getLogo())
@@ -63,28 +64,31 @@ public class JobService {
 
     public Job createJobByUserId(HttpServletRequest request, Job job, List<InterviewSlotCreateDTO> slots) {
         Integer userId = tokenService.extractUserIdFromRequest(request);
+        String userRole = tokenService.extractUserRoleFromRequest(request);
         User recruiter = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
 
         Job.PostAt requestedPostAt = job.getPostAt() != null ? job.getPostAt() : Job.PostAt.standard;
 
-        UserBenefits userBenefits = userBenefitsRepository
-                .findByUserAndUserPackageAndPostAt(
-                        recruiter,
-                        null,
-                        UserBenefits.PostAt.valueOf(requestedPostAt.name())
-                )
-                .orElseThrow(() -> new IllegalArgumentException("User benefits not found for this post type"));
+        // Chỉ recruiter mới kiểm tra user_benefits và job_post_limit
+        if (!"admin".equalsIgnoreCase(userRole)) {
+            UserBenefits userBenefits = userBenefitsRepository
+                    .findByUserAndPostAt(
+                            recruiter,
+                            UserBenefits.PostAt.valueOf(requestedPostAt.name())
+                    )
+                    .orElseThrow(() -> new IllegalArgumentException("User benefits not found for this post type"));
 
-        if (!canPostAt(userBenefits.getPostAt(), requestedPostAt)) {
-            throw new IllegalArgumentException("You are not allowed to post at this level: " + requestedPostAt);
-        }
+            if (!canPostAt(userBenefits.getPostAt(), requestedPostAt)) {
+                throw new IllegalArgumentException("You are not allowed to post at this level: " + requestedPostAt);
+            }
 
-        if (userBenefits.getJobPostLimit() == null || userBenefits.getJobPostLimit() <= 0) {
-            throw new IllegalArgumentException("You have reached your job post limit.");
+            if (userBenefits.getJobPostLimit() == null || userBenefits.getJobPostLimit() <= 0) {
+                throw new IllegalArgumentException("You have reached your job post limit.");
+            }
+            userBenefits.setJobPostLimit(userBenefits.getJobPostLimit() - 1);
+            userBenefitsRepository.save(userBenefits);
         }
-        userBenefits.setJobPostLimit(userBenefits.getJobPostLimit() - 1);
-        userBenefitsRepository.save(userBenefits);
 
         JobCategory category = jobCategoryRepository.findById(job.getCategory().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -124,21 +128,28 @@ public class JobService {
 
     public Job updateJobByUserId(HttpServletRequest request, Integer jobId, Job job) {
         Integer userId = tokenService.extractUserIdFromRequest(request);
+        String userRole = tokenService.extractUserRoleFromRequest(request);
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found"));
 
-        if (!existingJob.getRecruiter().getId().equals(userId)) {
+        // Cho phép admin toàn quyền cập nhật job
+        if (!"admin".equalsIgnoreCase(userRole) && !existingJob.getRecruiter().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized to update this job");
         }
 
-        UserBenefits userBenefits = userBenefitsRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User benefits not found"));
+        // Chỉ recruiter mới cần kiểm tra user_benefits và postAt
+        if (!"admin".equalsIgnoreCase(userRole)) {
+            UserBenefits userBenefits = userBenefitsRepository.findByUserId(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User benefits not found"));
+
+            Job.PostAt requestedPostAt = job.getPostAt() != null ? job.getPostAt() : Job.PostAt.standard;
+
+            if (!canPostAt(userBenefits.getPostAt(), requestedPostAt)) {
+                throw new IllegalArgumentException("You are not allowed to post at this level: " + requestedPostAt);
+            }
+        }
 
         Job.PostAt requestedPostAt = job.getPostAt() != null ? job.getPostAt() : Job.PostAt.standard;
-
-        if (!canPostAt(userBenefits.getPostAt(), requestedPostAt)) {
-            throw new IllegalArgumentException("You are not allowed to post at this level: " + requestedPostAt);
-        }
 
         JobCategory category = jobCategoryRepository.findById(job.getCategory().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
@@ -188,6 +199,10 @@ public class JobService {
         jobRepository.delete(job);
     }
 
+    public void deleteJobById(Integer jobId) {
+        jobRepository.deleteById(jobId);
+    }
+
     private boolean canPostAt(UserBenefits.PostAt allowed, Job.PostAt requested) {
         switch (allowed) {
             case proposal:
@@ -206,5 +221,55 @@ public class JobService {
                 .orElseThrow(() -> new IllegalArgumentException("Job not found"));
         initializeJobRelations(job);
         return toJobResponse(job);
+    }
+
+    public Job createJobByAdmin(Job job) {
+        // Lấy recruiter từ id được gửi lên
+        User recruiter = userRepository.findById(job.getRecruiter().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
+        JobCategory category = jobCategoryRepository.findById(job.getCategory().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        JobType type = jobTypeRepository.findById(job.getType().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Type not found"));
+        JobPosition position = jobPositionRepository.findById(job.getPosition().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Position not found"));
+        List<Skill> skills = job.getSkills() != null ? job.getSkills().stream()
+                .map(skill -> skillRepository.findById(skill.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Skill not found with ID: " + skill.getId())))
+                .collect(Collectors.toList()) : null;
+        job.setRecruiter(recruiter);
+        job.setCategory(category);
+        job.setType(type);
+        job.setPosition(position);
+        job.setSkills(skills);
+        return jobRepository.save(job);
+    }
+
+    public Job updateJobByAdmin(Integer jobId, Job job) {
+        Job existingJob = jobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+        User recruiter = userRepository.findById(job.getRecruiter().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
+        JobCategory category = jobCategoryRepository.findById(job.getCategory().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        JobType type = jobTypeRepository.findById(job.getType().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Type not found"));
+        JobPosition position = jobPositionRepository.findById(job.getPosition().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Position not found"));
+        List<Skill> skills = job.getSkills() != null ? job.getSkills().stream()
+                .map(skill -> skillRepository.findById(skill.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Skill not found with ID: " + skill.getId())))
+                .collect(Collectors.toList()) : null;
+        existingJob.setTitle(job.getTitle());
+        existingJob.setDescription(job.getDescription());
+        existingJob.setSalaryRange(job.getSalaryRange());
+        existingJob.setExperience(job.getExperience());
+        existingJob.setLocation(job.getLocation());
+        existingJob.setRecruiter(recruiter);
+        existingJob.setCategory(category);
+        existingJob.setType(type);
+        existingJob.setPosition(position);
+        existingJob.setSkills(skills);
+        return jobRepository.save(existingJob);
     }
 }

@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +25,6 @@ public class ServicePackageController {
             summary = "<EndPoint cho trang của nhà tuyển dụng>Lấy danh sách tất cả các gói dịch vụ",
             description = "Trả về toàn bộ các gói dịch vụ đang được cung cấp (cho admin, người dùng xem trước khi thanh toán)."
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN, ROLE_MODERATOR, ROLE_SUPPORT')")
     @GetMapping
     public ResponseEntity<List<ServicePackage>> getAllServicePackages() {
         return ResponseEntity.ok(servicePackageService.getAllServicePackages());
@@ -36,7 +34,6 @@ public class ServicePackageController {
             summary = "<EndPoint cho trang của nhà tuyển dụng>Lấy chi tiết gói dịch vụ theo ID",
             description = "Trả về thông tin chi tiết của một gói dịch vụ cụ thể, dùng khi người dùng nhấn vào 1 gói cụ thể."
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN, ROLE_MODERATOR, ROLE_SUPPORT')")
     @GetMapping("/{id}")
     public ResponseEntity<ServicePackage> getServicePackageById(
             @Parameter(description = "ID của gói dịch vụ") @PathVariable Integer id) {
@@ -47,7 +44,6 @@ public class ServicePackageController {
             summary = "<EndPoint cho trang của Admin>Tạo mới gói dịch vụ",
             description = "Tạo một gói dịch vụ mới (chỉ dành cho admin)."
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN, ROLE_MODERATOR, ROLE_SUPPORT')")
     @PostMapping
     public ResponseEntity<ServicePackage> createServicePackage(
             @Parameter(description = "Thông tin gói dịch vụ mới") @RequestBody ServicePackage servicePackage) {
@@ -58,7 +54,6 @@ public class ServicePackageController {
             summary = "<EndPoint cho trang của admin>Cập nhật gói dịch vụ",
             description = "Chỉnh sửa thông tin của một gói dịch vụ đã có (chỉ admin)."
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN, ROLE_MODERATOR, ROLE_SUPPORT')")
     @PutMapping("/{id}")
     public ResponseEntity<ServicePackage> updateServicePackage(
             @Parameter(description = "ID của gói dịch vụ cần cập nhật") @PathVariable Integer id,
@@ -70,8 +65,6 @@ public class ServicePackageController {
             summary = "<EndPoint cho trang của admin>Xoá gói dịch vụ",
             description = "Xoá một gói dịch vụ khỏi hệ thống (chỉ dành cho admin)."
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN, ROLE_MODERATOR, ROLE_SUPPORT')")
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteServicePackage(
             @Parameter(description = "ID của gói dịch vụ cần xoá") @PathVariable Integer id) {

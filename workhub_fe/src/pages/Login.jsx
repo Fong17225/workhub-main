@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
+import { login } from '../apiService';
 import { Link } from 'react-router-dom';
 
 const Login = () => {
@@ -14,27 +14,26 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (data) => {
-      // Sử dụng API login tự động phân role
-      const response = await axios.post(
-        'http://localhost:8080/workhub/api/v1/login',
-        null,
-        {
-          params: {
-            email: data.email,
-            password: data.password,
-          },
-          withCredentials: true,
-        }
-      );
-      return { token: response.data };
+      const response = await login(data);
+      return response.data; // response.data là { token: ... }
     },
     onSuccess: (result) => {
       setError('');
       try {
-        const token = result.token;
+        const token = result.token; // lấy đúng chuỗi token
         const payload = JSON.parse(atob(token.split('.')[1]));
         localStorage.setItem('token', token);
-        navigate('/');
+        if (payload && payload.role) {
+          const role = payload.role.toLowerCase();
+          localStorage.setItem('role', role);
+          if (role === 'admin') navigate('/admin');
+          else if (role === 'recruiter') navigate('/dashboard');
+          else if (role === 'candidate') navigate('/profile');
+          else navigate('/');
+        } else {
+          alert('Đăng nhập thành công nhưng không xác định được role!');
+          navigate('/');
+        }
       } catch (e) {
         alert('Đăng nhập thành công nhưng không xác định được role!');
         navigate('/');

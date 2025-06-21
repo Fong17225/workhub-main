@@ -1,5 +1,6 @@
 package gr3.workhub.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user_packages")
 @Schema(description = "Thông tin về gói dịch vụ mà người dùng đã mua")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class UserPackage {
 
     @Id
@@ -55,6 +57,10 @@ public class UserPackage {
     @Lob
     @Schema(description = "Mô tả chi tiết về giao dịch hoặc quyền lợi đi kèm", example = "Gói 6 tháng, hỗ trợ đăng tin khẩn")
     private String description;
+
+    @OneToMany(mappedBy = "userPackage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonManagedReference
+    private java.util.List<UserBenefits> userBenefits;
 
     @Schema(description = "Trạng thái hiện tại của gói người dùng")
     public enum Status {

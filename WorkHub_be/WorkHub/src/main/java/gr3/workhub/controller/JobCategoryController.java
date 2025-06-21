@@ -19,29 +19,31 @@ public class JobCategoryController {
 
     private final JobCategoryService jobCategoryService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'RECRUITER', 'recruiter')")
     @GetMapping
     public ResponseEntity<List<JobCategory>> getAllJobCategories() {
         return ResponseEntity.ok(jobCategoryService.getAllJobCategories());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<JobCategory> getJobCategoryById(@PathVariable Integer id) {
         return ResponseEntity.ok(jobCategoryService.getJobCategoryById(id));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<JobCategory> createJobCategory(@RequestBody JobCategory jobCategory) {
         return ResponseEntity.ok(jobCategoryService.createJobCategory(jobCategory));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<JobCategory> updateJobCategory(@PathVariable Integer id, @RequestBody JobCategory jobCategory) {
         return ResponseEntity.ok(jobCategoryService.updateJobCategory(id, jobCategory));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteJobCategory(@PathVariable Integer id) {
         jobCategoryService.deleteJobCategory(id);

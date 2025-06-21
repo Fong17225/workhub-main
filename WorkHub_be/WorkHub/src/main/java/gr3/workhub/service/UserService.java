@@ -84,7 +84,14 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Invalid credentials"));
         System.out.println("User found: " + user.getEmail() + ", status=" + user.getStatus() + ", role=" + user.getRole());
-        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+        // Cho phép đăng nhập với mật khẩu plain text hoặc BCrypt (chỉ dùng cho môi trường dev/test)
+        boolean passwordMatch = false;
+        if (user.getPassword().startsWith("$2a") || user.getPassword().startsWith("$2b") || user.getPassword().startsWith("$2y")) {
+            passwordMatch = passwordEncoder.matches(rawPassword, user.getPassword());
+        } else {
+            passwordMatch = rawPassword.equals(user.getPassword());
+        }
+        if (!passwordMatch) {
             System.out.println("Password mismatch!");
             throw new RuntimeException("Invalid credentials");
         }

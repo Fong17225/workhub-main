@@ -31,25 +31,29 @@ public class InterviewSlotService {
 
 
     public InterviewSlot createSlot(String sessionId, String candidateId, String jobId) {
-        boolean applied = applicationRepo.existsByJobIdAndCandidateId(
-                Integer.parseInt(jobId), Integer.parseInt(candidateId));
-        if (!applied) {
-            throw new IllegalArgumentException("Candidate did not apply for this job");
-        }
-
         InterviewSession session = sessionRepo.findById(UUID.fromString(sessionId))
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
-        User candidate = userRepo.findById(Integer.parseInt(candidateId))
-                .orElseThrow(() -> new IllegalArgumentException("Candidate not found"));
         Job job = jobRepo.findById(Integer.parseInt(jobId))
                 .orElseThrow(() -> new IllegalArgumentException("Job not found"));
 
         InterviewSlot slot = new InterviewSlot();
         slot.setInterviewSession(session);
-        slot.setCandidate(candidate);
         slot.setJob(job);
         slot.setCreatedAt(LocalDateTime.now());
         slot.setStartTime(session.getStartTime()); // Set startTime from InterviewSession
+
+        User candidate = null;
+        if (candidateId != null && !candidateId.isEmpty()) {
+            boolean applied = applicationRepo.existsByJobIdAndCandidateId(
+                    Integer.parseInt(jobId), Integer.parseInt(candidateId));
+            if (!applied) {
+                throw new IllegalArgumentException("Candidate did not apply for this job");
+            }
+            candidate = userRepo.findById(Integer.parseInt(candidateId))
+                    .orElseThrow(() -> new IllegalArgumentException("Candidate not found"));
+            slot.setCandidate(candidate);
+        }
+
         slot = slotRepo.save(slot);
 
         // Use tokenCandidate for the join link
@@ -66,7 +70,7 @@ public class InterviewSlotService {
                 "<div class='container' style='max-width: 600px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);'>" +
                 "<h1 class='text-center' style='color: #1f41ce; font-weight: bold; margin-bottom: 30px;'>WORKHUB</h1>" +
                 "<h4 class='mb-4'>Interview Invitation</h4>" +
-                "<p>Dear <strong>" + candidate.getFullname() + "</strong>,</p>" +
+                "<p>Dear <strong>" + (candidate != null ? candidate.getFullname() : "") + "</strong>,</p>" +
                 "<p>Your interview for the job position <strong>" + job.getTitle() + "</strong> is scheduled at <strong>" +
                 session.getStartTime().toString() + "</strong>.</p>" +
                 "<p>You can join the interview by clicking the button below. The link will be active 15 minutes before the scheduled time:</p>" +
@@ -79,7 +83,9 @@ public class InterviewSlotService {
                 "</body>" +
                 "</html>";
 
-        emailService.sendinterview(candidate.getEmail(), "Interview Schedule", body);
+        if (candidate != null) {
+            emailService.sendinterview(candidate.getEmail(), "Interview Schedule", body);
+        }
 
         return slot;
     }

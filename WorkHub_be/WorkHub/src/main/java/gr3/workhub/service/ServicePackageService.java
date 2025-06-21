@@ -14,6 +14,7 @@ public class ServicePackageService {
     private final ServicePackageRepository servicePackageRepository;
 
     public ServicePackage createServicePackage(ServicePackage servicePackage) {
+        servicePackage.setCreatedAt(java.time.LocalDateTime.now());
         return servicePackageRepository.save(servicePackage);
     }
 
@@ -25,6 +26,9 @@ public class ServicePackageService {
         existing.setDuration(servicePackage.getDuration());
         existing.setDescription(servicePackage.getDescription());
         existing.setStatus(servicePackage.getStatus());
+        existing.setJobPostLimit(servicePackage.getJobPostLimit());
+        existing.setCvLimit(servicePackage.getCvLimit());
+        existing.setPostAt(servicePackage.getPostAt());
         return servicePackageRepository.save(existing);
     }
 

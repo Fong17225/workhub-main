@@ -20,29 +20,31 @@ public class JobPositionController {
 
     private final JobPositionService jobPositionService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'RECRUITER', 'recruiter')")
     @GetMapping
     public ResponseEntity<List<JobPosition>> getAllJobPositions() {
         return ResponseEntity.ok(jobPositionService.getAllJobPositions());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<JobPosition> getJobPositionById(@PathVariable Integer id) {
         return ResponseEntity.ok(jobPositionService.getJobPositionById(id));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<JobPosition> createJobPosition(@RequestBody JobPosition jobPosition) {
         return ResponseEntity.ok(jobPositionService.createJobPosition(jobPosition));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<JobPosition> updateJobPosition(@PathVariable Integer id, @RequestBody JobPosition jobPosition) {
         return ResponseEntity.ok(jobPositionService.updateJobPosition(id, jobPosition));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteJobPosition(@PathVariable Integer id) {
         jobPositionService.deleteJobPosition(id);

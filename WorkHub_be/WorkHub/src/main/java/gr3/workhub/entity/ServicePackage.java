@@ -1,5 +1,6 @@
 package gr3.workhub.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "service_packages")
 @Schema(description = "Gói dịch vụ dành cho nhà tuyển dụng, chứa thông tin giá, thời hạn và trạng thái.")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ServicePackage {
 
     @Id
@@ -28,9 +30,18 @@ public class ServicePackage {
     @Schema(description = "Giá của gói dịch vụ", example = "499000.00")
     private BigDecimal price;
 
-    @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @Schema(description = "Danh sách các tính năng đi kèm gói dịch vụ")
-    private java.util.List<ServiceFeature> features = new java.util.ArrayList<>();
+    @Column(name = "job_post_limit", nullable = false)
+    @Schema(description = "Số lượng tin tuyển dụng có thể đăng", example = "10")
+    private Integer jobPostLimit = 5;
+
+    @Column(name = "cv_limit", nullable = false)
+    @Schema(description = "Số lượng CV có thể xem trong gói", example = "20")
+    private Integer cvLimit = 5;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "post_at", columnDefinition = "ENUM('proposal', 'urgent', 'standard') DEFAULT 'standard'")
+    @Schema(description = "Loại độ ưu tiên hiển thị tin tuyển dụng", example = "urgent")
+    private PostAt postAt = PostAt.standard;
 
     @Column(nullable = false)
     @Schema(description = "Thời hạn sử dụng gói (tính bằng ngày)", example = "30")
@@ -48,8 +59,16 @@ public class ServicePackage {
     @Schema(description = "Thời điểm tạo gói dịch vụ", example = "2025-05-26T10:00:00")
     private LocalDateTime createdAt;
 
-    @Schema(description = "Trạng thái của gói dịch vụ")
+    // Mối quan hệ 1:N từ ServicePackage -> UserPackage
+    @OneToMany(mappedBy = "servicePackage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<UserPackage> userPackages;
+
     public enum Status {
         active, suspended, inactive
+    }
+
+    public enum PostAt {
+        proposal, urgent, standard
     }
 }

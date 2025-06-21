@@ -1,4 +1,4 @@
- package gr3.workhub.repository;
+package gr3.workhub.repository;
 
 import gr3.workhub.entity.*;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,5 +16,5 @@ public interface UserBenefitsRepository extends JpaRepository<UserBenefits, Inte
     @Transactional
     @Modifying
     @Query("DELETE FROM UserBenefits ub WHERE ub.userPackage.id = :userPackageId")
-    void deleteAllByUserPackageId(Long userPackageId);
+    int deleteAllByUserPackageId(Long userPackageId); // Đổi kiểu trả về sang int để trả về số bản ghi bị xóa
 }

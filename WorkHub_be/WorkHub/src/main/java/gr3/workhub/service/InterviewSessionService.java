@@ -2,15 +2,17 @@ package gr3.workhub.service;
 
 import gr3.workhub.dto.CreateInterviewSessionRequest;
 import gr3.workhub.entity.InterviewSession;
+import gr3.workhub.entity.Job;
 import gr3.workhub.entity.User;
 import gr3.workhub.repository.InterviewSessionRepository;
+import gr3.workhub.repository.JobRepository;
 import gr3.workhub.repository.UserRepository;
 import gr3.workhub.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.http.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -26,6 +28,7 @@ public class InterviewSessionService {
     private final UserRepository userRepo;
     private final EmailService emailService;
     private final JwtUtil jwtUtil; // Inject JwtUtil
+    private final JobRepository jobRepo;
 
     @Value("${hms.template.id}")
     private String templateId;
@@ -100,6 +103,9 @@ public class InterviewSessionService {
 
         String roomId = create100msRoom(req.getTitle());
 
+        Job job = jobRepo.findById(req.getJobId())
+                .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+
         InterviewSession session = InterviewSession.builder()
                 .recruiter(recruiter)
                 .title(req.getTitle())
@@ -108,6 +114,7 @@ public class InterviewSessionService {
                 .roomId(roomId)
                 .status("ACTIVE")
                 .createdAt(LocalDateTime.now())
+                .job(job)
                 .build();
 
         session = sessionRepo.save(session);

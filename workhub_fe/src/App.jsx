@@ -12,6 +12,26 @@ import InterviewDashboard from './pages/InterviewDashboard';
 import AddSlotPage from './pages/AddSlotPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateSessionAndSlots from './pages/CreateSessionAndSlots';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminJobs from './pages/admin/AdminJobs';
+import AdminCompanies from './pages/admin/AdminCompanies';
+import AdminStats from './pages/admin/AdminStats';
+import AdminApplications from './pages/admin/AdminApplications';
+import AdminCandidates from './pages/admin/AdminCandidates';
+import AdminCompanyManager from './pages/admin/AdminCompanyManager';
+import AdminJobTypes from './pages/admin/AdminJobTypes';
+import AdminJobPositions from './pages/admin/AdminJobPositions';
+import AdminJobCategories from './pages/admin/AdminJobCategories';
+import AdminServicePackages from './pages/admin/AdminServicePackages';
+import AdminSidebar from './components/admin/AdminSidebar';
+import { Outlet } from 'react-router-dom';
+import PaymentPage from './pages/PaymentPage';
+import PaymentConfirm from './pages/PaymentConfirm';
+import CreateCompany from './pages/CreateCompany';
+import AdminRecruiterPackages from './pages/admin/AdminRecruiterPackages';
+import RecruiterJobManager from './pages/recruiter/RecruiterJobManager';
+import RecruiterCVList from './pages/recruiter/RecruiterCVList';
+import RecruiterCreateJob from './pages/recruiter/RecruiterCreateJob';
 
 function RequireRecruiterOrAdmin({ children }) {
   const token = localStorage.getItem('token');
@@ -27,18 +47,42 @@ function RequireRecruiterOrAdmin({ children }) {
   return <div className="text-center text-red-500 py-10">Bạn không có quyền truy cập trang này.</div>;
 }
 
+function AdminLayout() {
+  return (
+    <div className="min-h-screen bg-gray-100 flex">
+      <AdminSidebar />
+      <div className="flex-1 flex flex-col">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route
-          path="/login"
-          element={<Login />}
-        />
-        <Route
-          path="/register"
-          element={<Register />}
-        />
+          path="/admin/*"
+          element={<AdminLayout />}
+        >
+          <Route index element={<div className="p-8">Chào mừng đến dashboard admin!</div>} />
+          <Route path="stats" element={<AdminStats />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="jobs" element={<AdminJobs />} />
+          <Route path="companies" element={<AdminCompanies />} />
+          <Route path="applications" element={<AdminApplications />} />
+          <Route path="candidates" element={<AdminCandidates />} />
+          <Route path="company-manager" element={<AdminCompanyManager />} />
+          <Route path="job-types" element={<AdminJobTypes />} />
+          <Route path="job-positions" element={<AdminJobPositions />} />
+          <Route path="job-categories" element={<AdminJobCategories />} />
+          <Route path="service-packages" element={<AdminServicePackages />} />
+          <Route path="recruiter-packages" element={<AdminRecruiterPackages />} />
+          {/* Thêm các route quản lý khác tại đây */}
+        </Route>
         <Route
           path="/*"
           element={
@@ -53,12 +97,17 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/interview-dashboard" element={<InterviewDashboard />} />
                   <Route path="/add-slot" element={<AddSlotPage />} />
-                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
                   <Route path="/create-session-and-slots/:jobId" element={
                     <RequireRecruiterOrAdmin>
                       <CreateSessionAndSlots jobId={null} />
                     </RequireRecruiterOrAdmin>
                   } />
+                  <Route path="/payment" element={<PaymentPage />} />
+                  <Route path="/payment-confirm" element={<PaymentConfirm />} />
+                  <Route path="/create-company" element={<CreateCompany />} />
+                  <Route path="/recruiter/jobs" element={<RecruiterJobManager />} />
+                  <Route path="/recruiter/cvs" element={<RecruiterCVList />} />
+                  <Route path="/recruiter/create-job" element={<RecruiterCreateJob />} />
                 </Routes>
               </main>
               <Footer />

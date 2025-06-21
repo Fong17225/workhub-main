@@ -85,13 +85,15 @@ public class ApplicationService {
 
         List<ApplicationDTO> dtos = applications.stream()
                 .map(app -> new ApplicationDTO(
+                        app.getId(),
                         app.getJob().getTitle(),
                         app.getResume().getUser().getFullname(),
                         app.getResume().getUser().getEmail(),
                         app.getResume().getUser().getPhone(),
                         app.getStatus().name(),
                         app.getAppliedAt(),
-                        app.getResume().getFile()
+                        null, // Không trả về file trực tiếp
+                        app.getResume().getId() // Trả về resumeId
                 ))
                 .toList();
 
@@ -187,6 +189,32 @@ public class ApplicationService {
                 app.getAppliedAt(),
                 resume.getFile()
         );
+    }
+
+    public void addUserToJob(Integer jobId, Integer candidateId, Integer resumeId) {
+        if (applicationRepository.existsByJobIdAndCandidateId(jobId, candidateId)) {
+            throw new IllegalArgumentException("User already applied to this job");
+        }
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found with ID: " + jobId));
+        User candidate = userRepository.findById(candidateId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidate not found with ID: " + candidateId));
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found with ID: " + resumeId));
+        Application application = new Application();
+        application.setJob(job);
+        application.setCandidate(candidate);
+        application.setResume(resume);
+        applicationRepository.save(application);
+    }
+
+    public void deleteUserFromJob(Integer jobId, Integer applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found with ID: " + applicationId));
+        if (!application.getJob().getId().equals(jobId)) {
+            throw new IllegalArgumentException("Application does not belong to this job");
+        }
+        applicationRepository.deleteById(applicationId);
     }
 
 

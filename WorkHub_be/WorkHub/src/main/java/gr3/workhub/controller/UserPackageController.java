@@ -50,19 +50,14 @@ public class UserPackageController {
         return ResponseEntity.ok(userPackageService.getUserPackageById(id));
     }
 
-    // Đã comment: Nếu cần cho phép tạo UserPackage (manual hoặc payment), mở lại phần này.
-    /*
     @Operation(
-        summary = "Tạo mới một UserPackage (gán gói cho người dùng)",
-        description = "Gán thủ công một gói cho người dùng (admin hoặc hệ thống gọi từ service payment)."
+            summary = "Tạo mới một UserPackage (gán gói cho người dùng)",
+            description = "Gán thủ công một gói cho người dùng (admin hoặc hệ thống gọi từ service payment)."
     )
-    @PostMapping("/{userId}")
-    public ResponseEntity<UserPackage> createUserPackage(
-            @Parameter(description = "ID người dùng") @PathVariable Integer userId,
-            @RequestBody UserPackage userPackage) {
-        return ResponseEntity.ok(userPackageService.createUserPackageByUserId(userId, userPackage));
+    @PostMapping
+    public ResponseEntity<UserPackage> createUserPackage(@RequestBody UserPackage userPackage) {
+        return ResponseEntity.ok(userPackageService.createUserPackage(userPackage));
     }
-    */
 
     @Operation(
             summary = "Cập nhật thông tin gói của người dùng",
@@ -84,5 +79,18 @@ public class UserPackageController {
             @Parameter(description = "ID của UserPackage cần xoá") @PathVariable Integer id) {
         userPackageService.deleteUserPackage(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Recruiter mua gói dịch vụ",
+            description = "Nhà tuyển dụng chọn gói và tiến hành mua, hệ thống sẽ tạo UserPackage mới cho user."
+    )
+    @PostMapping("/buy")
+    public ResponseEntity<UserPackage> buyServicePackage(
+            @RequestParam Integer userId,
+            @RequestParam Integer packageId
+    ) {
+        UserPackage userPackage = userPackageService.buyServicePackage(userId, packageId);
+        return ResponseEntity.ok(userPackage);
     }
 }

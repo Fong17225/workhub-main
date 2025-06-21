@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class User {
     @Schema(description = "Trạng thái tài khoản", example = "verified")
     private Status status;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     @Schema(description = "Thời điểm người dùng được tạo", example = "2024-05-01T12:00:00")
     private LocalDateTime createdAt;
@@ -64,6 +66,11 @@ public class User {
     @JsonManagedReference  // Đảm bảo resumeList được serialize
     @Schema(description = "Danh sách hồ sơ (CV) do người dùng tạo")
     private List<Resume> resumeList = new ArrayList<>();
+
+    // Mối quan hệ 1:N từ User -> UserPackage
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<UserPackage> userPackages;
 
     // Constructor tiện dụng nếu chỉ cần truyền ID
     public User(Integer id) {

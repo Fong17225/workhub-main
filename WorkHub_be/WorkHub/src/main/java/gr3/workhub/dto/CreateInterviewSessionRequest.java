@@ -9,4 +9,5 @@ public class CreateInterviewSessionRequest {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String recruiterId; // UUID as String
+    private Integer jobId;
 }

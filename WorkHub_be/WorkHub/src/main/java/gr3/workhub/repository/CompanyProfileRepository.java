@@ -6,7 +6,9 @@ import gr3.workhub.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface CompanyProfileRepository extends JpaRepository<CompanyProfile, Integer> {
-    CompanyProfile findByRecruiter(User recruiter);
+    List<CompanyProfile> findByRecruiter(User recruiter);
 }

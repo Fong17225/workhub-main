@@ -20,29 +20,31 @@ public class JobTypeController {
 
     private final JobTypeService jobTypeService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'RECRUITER', 'recruiter')")
     @GetMapping
     public ResponseEntity<List<JobType>> getAllJobTypes() {
         return ResponseEntity.ok(jobTypeService.getAllJobTypes());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<JobType> getJobTypeById(@PathVariable Integer id) {
         return ResponseEntity.ok(jobTypeService.getJobTypeById(id));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<JobType> createJobType(@RequestBody JobType jobType) {
         return ResponseEntity.ok(jobTypeService.createJobType(jobType));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<JobType> updateJobType(@PathVariable Integer id, @RequestBody JobType jobType) {
         return ResponseEntity.ok(jobTypeService.updateJobType(id, jobType));
     }
 
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteJobType(@PathVariable Integer id) {
         jobTypeService.deleteJobType(id);

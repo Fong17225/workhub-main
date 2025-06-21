@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { getInterviewSessions, getInterviewSlotsScheduleCandidate, createInterviewSession } from '../apiService';
 import { useState } from 'react';
 
 const InterviewDashboard = () => {
@@ -13,7 +13,7 @@ const InterviewDashboard = () => {
   const { data: sessions, isLoading: loadingSessions } = useQuery({
     queryKey: ['interviewSessions'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:8080/workhub/api/v1/interview-sessions', {
+      const res = await getInterviewSessions({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return res.data;
@@ -25,7 +25,7 @@ const InterviewDashboard = () => {
   const { data: candidateSchedules, isLoading: loadingSchedules } = useQuery({
     queryKey: ['candidateSchedules'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:8080/workhub/api/v1/interview-slots/schedule/candidate', {
+      const res = await getInterviewSlotsScheduleCandidate({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return res.data;
@@ -35,7 +35,7 @@ const InterviewDashboard = () => {
 
   const createSessionMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await axios.post('http://localhost:8080/workhub/api/v1/interview-sessions', data, {
+      const res = await createInterviewSession(data, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return res.data;
@@ -140,6 +140,7 @@ const InterviewDashboard = () => {
                   <th className="p-2">Tên công việc</th>
                   <th className="p-2">Thời gian</th>
                   <th className="p-2">Trạng thái</th>
+                  <th className="p-2">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,6 +149,16 @@ const InterviewDashboard = () => {
                     <td className="p-2">{slot.jobTitle}</td>
                     <td className="p-2">{slot.time ? new Date(slot.time).toLocaleString('vi-VN') : ''}</td>
                     <td className="p-2">{slot.status}</td>
+                    <td className="p-2">
+                      {slot.codeCandidate && (
+                        <button
+                          className="bg-green-500 text-white px-3 py-1 rounded"
+                          onClick={() => window.open(`https://workhub.app.100ms.live/preview/${slot.codeCandidate}`, "_blank")}
+                        >
+                          Tham gia phỏng vấn
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

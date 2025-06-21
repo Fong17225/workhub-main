@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import {
   Edit,
   LocationOn,
@@ -18,6 +17,9 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import ArticleIcon from '@mui/icons-material/Article';
 import Dashboard from './Dashboard';
+import { 
+  getSavedJobs, getAppliedJobs, getUserResumes, saveJob, unsaveJob, createResume, deleteResume, getResumeFileBase64 
+} from '../apiService';
 
 const parseJwt = (token) => {
   if (!token) return null;
@@ -45,7 +47,7 @@ const Profile = () => {
     queryKey: ['savedJobs'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/saved-jobs', {
+      const response = await getSavedJobs({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -58,7 +60,7 @@ const Profile = () => {
     queryKey: ['appliedJobs'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/applications/appliedJobs', {
+      const response = await getAppliedJobs({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -71,7 +73,7 @@ const Profile = () => {
     queryKey: ['userResumes'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/resumes/me', {
+      const response = await getUserResumes({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -83,14 +85,12 @@ const Profile = () => {
   const saveJobMutation = useMutation({
     mutationFn: async (jobId) => {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8080/workhub/api/v1/saved-jobs', null, {
-        params: { jobId },
+      const response = await saveJob(jobId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
     },
     onSuccess: () => {
-      // Refetch saved jobs after saving
       refetchSavedJobs();
       alert('Đã lưu công việc thành công!');
     },
@@ -103,8 +103,7 @@ const Profile = () => {
   const unsaveJobMutation = useMutation({
     mutationFn: async (jobId) => {
       const token = localStorage.getItem('token');
-      const response = await axios.delete('http://localhost:8080/workhub/api/v1/saved-jobs', {
-        params: { jobId },
+      const response = await unsaveJob(jobId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -122,7 +121,7 @@ const Profile = () => {
   const createResumeMutation = useMutation({
     mutationFn: async (formData) => {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8080/workhub/api/v1/resumes', formData, {
+      const response = await createResume(formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -147,7 +146,7 @@ const Profile = () => {
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId) => {
       const token = localStorage.getItem('token');
-      const response = await axios.delete(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}`, {
+      const response = await deleteResume(resumeId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -239,10 +238,9 @@ const Profile = () => {
   const handleDownloadResume = async (resumeId, resumeTitle) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}/file-base64`, {
+      const response = await getResumeFileBase64(resumeId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      // Giả sử backend trả về base64 string
       const base64 = response.data;
       const link = document.createElement('a');
       link.href = `data:application/pdf;base64,${base64}`;
@@ -259,7 +257,7 @@ const Profile = () => {
   const handleViewResume = async (resumeId, resumeTitle) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/${resumeId}/file-base64`, {
+      const response = await getResumeFileBase64(resumeId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const base64 = response.data;

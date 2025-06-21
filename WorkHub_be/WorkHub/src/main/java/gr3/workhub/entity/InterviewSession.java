@@ -52,4 +52,5 @@ public class InterviewSession {
     @ManyToOne
     @JoinColumn(name = "job_id")
     private Job job;
+
 }

@@ -35,6 +35,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/workhub/api/v1/admin/**",
+                                "/workhub/api/v1/admin/jobs/**"
+                        ).hasRole("ADMIN")
+                        .requestMatchers(
                                 "/workhub/api/v1/recruiter/login",
                                 "/workhub/api/v1/candidate/login",
                                 "/workhub/api/v1/admin/login",
@@ -51,7 +55,11 @@ public class SecurityConfig {
                                 "/workhub/api/v1/jobs",
                                 "/workhub/api/v1/jobs/**",
                                 "/error/**",
-                                "/workhub/api/v1/login"
+                                "/workhub/api/v1/login",
+                                "/workhub/api/v1/companies",
+                                "/workhub/api/v1/companies/**",
+                                "/workhub/api/v1/service-packages",
+                                "/workhub/api/v1/service-packages/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

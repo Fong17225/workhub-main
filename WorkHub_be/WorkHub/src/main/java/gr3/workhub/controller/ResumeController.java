@@ -146,4 +146,31 @@ public class ResumeController {
         String base64 = resumeService.getResumeFileBase64(resumeId);
         return ResponseEntity.ok().body(base64);
     }
+
+    @Operation(
+            summary = "<EndPoint cho admin>Tạo hồ sơ cho ứng viên",
+            description = "Dùng để tạo hồ sơ cho một ứng viên bất kỳ bởi admin."
+    )
+    @PreAuthorize("hasAnyRole('CANDIDATE', 'ADMIN')")
+    @PostMapping("/admin/{userId}")
+    public ResponseEntity<Resume> createResumeByAdmin(
+            @PathVariable Integer userId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "skillIds", required = false) List<Integer> skillIds
+    ) throws IOException {
+        Resume resume = new Resume();
+        resume.setFile(file.getBytes());
+        resume.setTitle(title);
+        resume.setContent(content != null ? content : "");
+        if (skillIds != null) {
+            resume.setSkills(skillIds.stream()
+                .map(skillId -> skillRepository.findById(skillId)
+                    .orElseThrow(() -> new IllegalArgumentException("Skill not found with ID: " + skillId)))
+                .collect(Collectors.toList()));
+        }
+        Resume createdResume = resumeService.createResumeForUser(resume, userId);
+        return ResponseEntity.ok(createdResume);
+    }
 }

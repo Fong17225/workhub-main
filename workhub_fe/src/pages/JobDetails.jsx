@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import {
+  getUserResumes,
+  getInterviewSlotsByJob,
+  applyJob,
+  applyJobWithSlot,
+  getJobById,
+  getSavedJobs,
+  saveJob,
+  unsaveJob,
+  getJobs
+} from '../apiService';
 
 const JobDetails = () => {
   const { id } = useParams();
@@ -32,7 +42,7 @@ const JobDetails = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/resumes/me', {
+      const response = await getUserResumes({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -45,8 +55,9 @@ const JobDetails = () => {
     queryKey: ['slots', id],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8080/workhub/api/v1/interview-slots/by-job/${id}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await getInterviewSlotsByJob(id, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       return res.data.filter(slot => !slot.booked);
     },
     enabled: showApplyModal && !!id,
@@ -56,8 +67,7 @@ const JobDetails = () => {
   const applyJobMutation = useMutation({
     mutationFn: async ({ jobId, resumeId }) => {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:8080/workhub/api/v1/applications/${jobId}`, null, {
-        params: { resumeId },
+      const response = await applyJob(jobId, resumeId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -76,8 +86,7 @@ const JobDetails = () => {
   const applyJobWithSlotMutation = useMutation({
     mutationFn: async ({ jobId, resumeId, slotId }) => {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:8080/workhub/api/v1/applications/${jobId}/with-slot`, null, {
-        params: { resumeId, slotId },
+      const response = await applyJobWithSlot(jobId, resumeId, slotId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -95,7 +104,7 @@ const JobDetails = () => {
     queryKey: ['job', id],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs/${id}`, {
+      const response = await getJobById(id, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -107,7 +116,7 @@ const JobDetails = () => {
     queryKey: ['savedJobs'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/saved-jobs', {
+      const response = await getSavedJobs({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -118,8 +127,7 @@ const JobDetails = () => {
   const saveJobMutation = useMutation({
     mutationFn: async (jobId) => {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8080/workhub/api/v1/saved-jobs', null, {
-        params: { jobId: jobId },
+      const response = await saveJob(jobId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -136,8 +144,7 @@ const JobDetails = () => {
   const unsaveJobMutation = useMutation({
     mutationFn: async (jobId) => {
       const token = localStorage.getItem('token');
-      const response = await axios.delete('http://localhost:8080/workhub/api/v1/saved-jobs', {
-        params: { jobId: jobId },
+      const response = await unsaveJob(jobId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -215,7 +222,7 @@ const JobDetails = () => {
         params.append('categoryId', job.category.id);
       }
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`, {
+      const response = await getJobs(params.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data.filter(similarJob => similarJob.id !== job.id).slice(0, 5);

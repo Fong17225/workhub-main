@@ -70,7 +70,6 @@ public class CompanyProfileController {
     )
     @ApiResponse(responseCode = "200", description = "Lấy thành công danh sách công ty")
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     public ResponseEntity<List<CompanyProfile>> getAllCompanies() {
         return ResponseEntity.ok(companyProfileService.getAllCompanyProfiles());
     }
@@ -110,5 +109,33 @@ public class CompanyProfileController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(
+            summary = "Cập nhật thông tin hồ sơ công ty",
+            description = "Cập nhật thông tin chi tiết của hồ sơ công ty theo ID."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cập nhật hồ sơ công ty thành công"),
+            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy công ty với ID tương ứng")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<CompanyProfile> updateCompanyProfile(@PathVariable Integer id, @RequestBody CompanyProfileDTO dto) {
+        CompanyProfile updated = companyProfileService.updateCompanyProfile(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    @Operation(
+            summary = "Xóa hồ sơ công ty",
+            description = "Xóa một hồ sơ công ty khỏi hệ thống theo ID."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Xóa hồ sơ công ty thành công"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy công ty với ID tương ứng")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCompanyProfile(@PathVariable Integer id) {
+        companyProfileService.deleteCompanyProfile(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }

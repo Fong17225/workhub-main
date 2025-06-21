@@ -21,6 +21,12 @@ public class JobResponse {
     private String location;
     private java.time.LocalDateTime deadline;
     private List<String> skills;
+    private Integer recruiterId;
+    private String recruiterFullname;
+    private String recruiterUsername;
+    private Integer categoryId;
+    private Integer typeId;
+    private Integer positionId;
 
     public JobResponse(Job job, String companyName, String companyLogo) {
         this.id = job.getId();
@@ -38,5 +44,11 @@ public class JobResponse {
         this.skills = job.getSkills() != null
                 ? job.getSkills().stream().map(skill -> skill.getName()).collect(Collectors.toList())
                 : null;
+        this.recruiterId = job.getRecruiter() != null ? job.getRecruiter().getId() : null;
+        this.recruiterFullname = job.getRecruiter() != null ? job.getRecruiter().getFullname() : null;
+        this.recruiterUsername = job.getRecruiter() != null ? job.getRecruiter().getEmail() : null; // Nếu muốn lấy username, thay getEmail() bằng getUsername()
+        this.categoryId = job.getCategory() != null ? job.getCategory().getId() : null;
+        this.typeId = job.getType() != null ? job.getType().getId() : null;
+        this.positionId = job.getPosition() != null ? job.getPosition().getId() : null;
     }
 }

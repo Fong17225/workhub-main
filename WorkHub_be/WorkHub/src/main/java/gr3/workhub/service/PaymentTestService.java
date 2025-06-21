@@ -55,25 +55,23 @@ public class PaymentTestService {
 
         userPackage = userPackageRepository.save(userPackage);
 
-        // 3. Upsert UserBenefits for each ServiceFeature
-        for (ServiceFeature feature : servicePackage.getFeatures()) {
-            UserBenefits.PostAt postAt = UserBenefits.PostAt.valueOf(feature.getPostAt().name());
-            UserBenefits userBenefits = userBenefitsRepository
-                    .findByUserAndPostAt(user, postAt)
-                    .orElse(null);
+        // 3. Upsert UserBenefits for ServicePackage limits (no features table)
+        UserBenefits.PostAt postAt = UserBenefits.PostAt.valueOf(servicePackage.getPostAt().name());
+        UserBenefits userBenefits = userBenefitsRepository
+            .findByUserAndPostAt(user, postAt)
+            .orElse(null);
 
-            if (userBenefits == null) {
-                userBenefits = new UserBenefits();
-                userBenefits.setUser(user);
-                userBenefits.setPostAt(postAt);
-            }
-            userBenefits.setUserPackage(userPackage);
-            userBenefits.setJobPostLimit(feature.getJobPostLimit());
-            userBenefits.setCvLimit(feature.getCvLimit());
-            userBenefits.setDescription(feature.getDescription());
-            userBenefits.setUpdatedAt(now);
-            userBenefitsRepository.save(userBenefits);
+        if (userBenefits == null) {
+            userBenefits = new UserBenefits();
+            userBenefits.setUser(user);
+            userBenefits.setPostAt(postAt);
         }
+        userBenefits.setUserPackage(userPackage);
+        userBenefits.setJobPostLimit(servicePackage.getJobPostLimit());
+        userBenefits.setCvLimit(servicePackage.getCvLimit());
+        userBenefits.setDescription(servicePackage.getDescription());
+        userBenefits.setUpdatedAt(now);
+        userBenefitsRepository.save(userBenefits);
 
         return userPackage;
     }
@@ -118,24 +116,23 @@ public class PaymentTestService {
         userPackage = userPackageRepository.save(userPackage);
 
         // 5. Update UserBenefits as before
-        for (ServiceFeature feature : servicePackage.getFeatures()) {
-            UserBenefits.PostAt postAt = UserBenefits.PostAt.valueOf(feature.getPostAt().name());
-            UserBenefits userBenefits = userBenefitsRepository
-                    .findByUserAndPostAt(user, postAt)
-                    .orElse(null);
+        UserBenefits.PostAt postAt = UserBenefits.PostAt.valueOf(servicePackage.getPostAt().name());
+        UserBenefits userBenefits = userBenefitsRepository
+                .findByUserAndPostAt(user, postAt)
+                .orElse(null);
 
-            if (userBenefits == null) {
-                userBenefits = new UserBenefits();
-                userBenefits.setUser(user);
-                userBenefits.setPostAt(postAt);
-            }
-            userBenefits.setUserPackage(userPackage);
-            userBenefits.setJobPostLimit(feature.getJobPostLimit());
-            userBenefits.setCvLimit(feature.getCvLimit());
-            userBenefits.setDescription(feature.getDescription());
-            userBenefits.setUpdatedAt(now);
-            userBenefitsRepository.save(userBenefits);
+        if (userBenefits == null) {
+            userBenefits = new UserBenefits();
+            userBenefits.setUser(user);
+            userBenefits.setPostAt(postAt);
         }
+        userBenefits.setUserPackage(userPackage);
+        userBenefits.setJobPostLimit(servicePackage.getJobPostLimit());
+        userBenefits.setCvLimit(servicePackage.getCvLimit());
+        userBenefits.setDescription(servicePackage.getDescription());
+        userBenefits.setUpdatedAt(now);
+        userBenefitsRepository.save(userBenefits);
+
 
         return userPackage;
     }

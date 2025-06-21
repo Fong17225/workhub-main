@@ -29,7 +29,7 @@ public class InterviewSlotController {
     @PostMapping
     public ResponseEntity<InterviewSlot> registerSlot(
             @Parameter(description = "ID phiên phỏng vấn") @RequestParam String sessionId,
-            @Parameter(description = "ID ứng viên") @RequestParam String candidateId,
+            @Parameter(description = "ID ứng viên") @RequestParam(required = false) String candidateId,
             @Parameter(description = "ID công việc") @RequestParam String jobId
     ) {
         InterviewSlot slot = slotService.createSlot(sessionId, candidateId, jobId);

@@ -22,7 +22,7 @@ public class SkillController {
 
     // Create a new skill
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_super_admin')")
+    @PreAuthorize("hasRole('super_admin')")
     public ResponseEntity<Skill> createSkill(@RequestBody Skill skill) {
         Skill createdSkill = skillService.createSkill(skill);
         return ResponseEntity.ok(createdSkill);
@@ -30,7 +30,7 @@ public class SkillController {
 
     // Update an existing skill
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_super_admin')")
+    @PreAuthorize("hasRole('super_admin')")
     public ResponseEntity<Skill> updateSkill(@PathVariable Integer id, @RequestBody Skill updatedSkill) {
         Skill skill = skillService.updateSkill(id, updatedSkill);
         return ResponseEntity.ok(skill);
@@ -38,7 +38,7 @@ public class SkillController {
 
     // Delete a skill
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_super_admin')")
+    @PreAuthorize("hasRole('super_admin')")
     public ResponseEntity<Void> deleteSkill(@PathVariable Integer id) {
         skillService.deleteSkill(id);
         return ResponseEntity.noContent().build();
@@ -46,7 +46,7 @@ public class SkillController {
 
     // Get all skills
     @GetMapping
-//    @PreAuthorize("hasRole('ROLE_candidate') or hasRole('ROLE_RECRUITER') or hasRole('ROLE_super_admin')")
+//    @PreAuthorize("hasRole('candidate') or hasRole('recruiter') or hasRole('super_admin')")
     public ResponseEntity<List<Skill>> getAllSkills() {
         List<Skill> skills = skillService.getAllSkills();
         return ResponseEntity.ok(skills);

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Work, Business, School } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { getJobs } from '../apiService';
 import { 
   BriefcaseIcon, 
   BuildingOfficeIcon, 
@@ -12,6 +12,7 @@ import {
   TagIcon
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import ServicePackageList from '../components/ServicePackageList';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const Home = () => {
     queryKey: ['allJobs'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/jobs', {
+      const response = await getJobs('', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       // Shuffle and take the first 5 jobs
@@ -38,6 +39,16 @@ const Home = () => {
       }
     }
   };
+
+  // Lấy user từ token
+  let user = null;
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      user = { id: payload.id, role: payload.role };
+    } catch {}
+  }
 
   if (isError) {
     return <div className="text-center text-red-500">Lỗi khi tải dữ liệu việc làm.</div>;
@@ -81,7 +92,8 @@ const Home = () => {
       {/* Features Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <ServicePackageList user={user} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <Work className="text-primary text-4xl mb-4" />
               <h3 className="text-xl font-semibold mb-2">Tìm việc làm phù hợp</h3>

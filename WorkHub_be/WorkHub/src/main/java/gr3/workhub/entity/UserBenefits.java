@@ -22,11 +22,13 @@ public class UserBenefits {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Schema(description = "Người dùng sở hữu quyền lợi này")
     private User user;
 
     @ManyToOne
     @JoinColumn(name = "user_package_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonBackReference
     @Schema(description = "Gói dịch vụ mà quyền lợi này thuộc về")
     private UserPackage userPackage;
 

@@ -1,149 +1,66 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { useState } from 'react';
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-const AdminDashboard = () => {
-  const token = localStorage.getItem('token');
-  const { data: candidates, isLoading } = useQuery({
-    queryKey: ['admin-candidates'],
-    queryFn: async () => {
-      const res = await axios.get('http://localhost:8080/workhub/api/v1/admin/candidates', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      return res.data;
-    },
-    enabled: !!token,
-  });
-  const [selectedUser, setSelectedUser] = useState(null);
-  const { data: resumes } = useQuery({
-    queryKey: ['admin-user-resumes', selectedUser?.id],
-    queryFn: async () => {
-      if (!selectedUser?.id) return [];
-      const res = await axios.get(`http://localhost:8080/workhub/api/v1/resumes/user/${selectedUser.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      return res.data;
-    },
-    enabled: !!selectedUser?.id,
-  });
-  const { data: savedJobs } = useQuery({
-    queryKey: ['admin-user-saved-jobs', selectedUser?.id],
-    queryFn: async () => {
-      if (!selectedUser?.id) return [];
-      const res = await axios.get(`http://localhost:8080/workhub/api/v1/saved-jobs/user/${selectedUser.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      return res.data;
-    },
-    enabled: !!selectedUser?.id,
-  });
-  const { data: applications } = useQuery({
-    queryKey: ['admin-user-applications', selectedUser?.id],
-    queryFn: async () => {
-      if (!selectedUser?.id) return [];
-      const res = await axios.get(`http://localhost:8080/workhub/api/v1/applications/user/${selectedUser.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      return res.data;
-    },
-    enabled: !!selectedUser?.id,
-  });
-  const queryClient = useQueryClient();
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId) => {
-      const res = await axios.delete(`http://localhost:8080/workhub/api/v1/user/${userId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      return res.data;
-    },
-    onSuccess: () => {
-      setSelectedUser(null);
-      queryClient.invalidateQueries(['admin-candidates']);
-      alert('Xóa ứng viên thành công!');
-    },
-    onError: () => {
-      alert('Xóa ứng viên thất bại!');
+const adminFunctions = [
+  { title: 'Thống kê', path: '/admin/stats', icon: '📊' },
+  { title: 'Quản lý người dùng', path: '/admin/users', icon: '👤' },
+  { title: 'Quản lý ứng viên', path: '/admin/candidates', icon: '🧑‍💼' },
+  { title: 'Quản lý công việc', path: '/admin/jobs', icon: '💼' },
+  { title: 'Quản lý loại công việc', path: '/admin/job-types', icon: '🗂️' },
+  { title: 'Quản lý vị trí công việc', path: '/admin/job-positions', icon: '📌' },
+  { title: 'Quản lý danh mục công việc', path: '/admin/job-categories', icon: '📚' },
+  { title: 'Quản lý công ty', path: '/admin/company-manager', icon: '🏭' },
+  { title: 'Quản lý ứng tuyển', path: '/admin/applications', icon: '📝' },
+  { title: 'Quản lý phỏng vấn', path: '/admin/interviews', icon: '🎤' },
+  { title: 'Quản lý kỹ năng & gói dịch vụ', path: '/admin/services', icon: '🎯' },
+  { title: 'Quản lý thông báo & tin nhắn', path: '/admin/communications', icon: '✉️' },
+  { title: 'Quản lý đánh giá & hồ sơ', path: '/admin/profiles', icon: '📄' },
+  { title: 'Quản lý giao dịch', path: '/admin/transactions', icon: '💳' },
+  { title: 'Nhật ký hoạt động admin', path: '/admin/admin-logs', icon: '📋' },
+];
+
+export default function AdminDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'admin') {
+      navigate('/login');
     }
-  });
-
+  }, [navigate]);
   return (
-    <div className="max-w-5xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Dashboard Quản lý Ứng viên (Admin)</h1>
-      {isLoading ? (
-        <div>Đang tải...</div>
-      ) : candidates?.length > 0 ? (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2">ID</th>
-              <th className="p-2">Tên</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Số điện thoại</th>
-              <th className="p-2">Trạng thái</th>
-              <th className="p-2">Ngày tạo</th>
-              <th className="p-2">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map(user => (
-              <tr key={user.id} className="border-t">
-                <td className="p-2">{user.id}</td>
-                <td className="p-2">{user.fullname}</td>
-                <td className="p-2">{user.email}</td>
-                <td className="p-2">{user.phone || '-'}</td>
-                <td className="p-2">{user.status}</td>
-                <td className="p-2">{user.createdAt ? new Date(user.createdAt).toLocaleString('vi-VN') : ''}</td>
-                <td className="p-2">
-                  <button
-                    className="bg-primary text-white px-3 py-1 rounded text-xs"
-                    onClick={() => setSelectedUser(user)}
-                  >
-                    Xem
-                  </button>
-                  <button
-                    className="bg-red-500 text-white px-3 py-1 rounded text-xs ml-2"
-                    onClick={() => {
-                      if(window.confirm('Bạn có chắc muốn xóa ứng viên này?')) deleteUserMutation.mutate(user.id);
-                    }}
-                  >
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div>Không có ứng viên nào.</div>
-      )}
-      {selectedUser && (
-        <div className="mt-8 bg-white rounded shadow p-6">
-          <h2 className="text-lg font-bold mb-4">Thông tin chi tiết ứng viên: {selectedUser.fullname}</h2>
-          <h3 className="font-semibold mt-4 mb-2">CV đã tải lên</h3>
-          <ul className="list-disc ml-6 mb-4">
-            {resumes?.length > 0 ? resumes.map(r => (
-              <li key={r.id}>
-                <a href={`http://localhost:8080/workhub/api/v1/resumes/${r.id}/download`} target="_blank" rel="noopener noreferrer" className="text-primary underline">{r.title}</a>
-              </li>
-            )) : <li>Không có CV nào.</li>}
-          </ul>
-          <h3 className="font-semibold mt-4 mb-2">Công việc đã lưu</h3>
-          <ul className="list-disc ml-6 mb-4">
-            {savedJobs?.length > 0 ? savedJobs.map(j => (
-              <li key={j.id}>{j.title}</li>
-            )) : <li>Không có job đã lưu.</li>}
-          </ul>
-          <h3 className="font-semibold mt-4 mb-2">Lịch sử ứng tuyển</h3>
-          <ul className="list-disc ml-6">
-            {applications?.length > 0 ? applications.map(a => (
-              <li key={a.applicationId}>{a.job?.title} ({a.status})</li>
-            )) : <li>Không có lịch sử ứng tuyển.</li>}
-          </ul>
-          <button className="mt-4 px-4 py-2 bg-gray-200 rounded" onClick={() => setSelectedUser(null)}>Đóng</button>
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white shadow-lg flex flex-col min-h-screen">
+        <div className="h-16 flex items-center justify-center border-b">
+          <span className="text-2xl font-bold text-blue-700 tracking-wide">WorkHub Admin</span>
         </div>
-      )}
+        <nav className="flex-1 py-6">
+          {adminFunctions.map((func) => (
+            <Link
+              key={func.title}
+              to={func.path}
+              className={`flex items-center px-6 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition rounded-lg mx-2 my-1 ${location.pathname === func.path ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}
+            >
+              <span className="text-xl mr-3">{func.icon}</span>
+              <span className="font-medium">{func.title}</span>
+            </Link>
+          ))}
+        </nav>
+      </aside>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="h-16 bg-white shadow flex items-center px-8 justify-between">
+          <h1 className="text-2xl font-bold text-blue-700">Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-600">Xin chào, Admin!</span>
+            <img src="https://themewagon.github.io/argon-dashboard-tailwind/assets/img/team-2.jpg" alt="avatar" className="w-10 h-10 rounded-full border" />
+          </div>
+        </header>
+        {/* Chỉ giữ lại phần nội dung động, không render các card quản trị ở giữa */}
+      </div>
     </div>
   );
-};
-
-export default AdminDashboard;
+}

@@ -104,4 +104,19 @@ public class ResumeService {
     public List<Resume> getAllResumes() {
         return resumeRepository.findAll();
     }
+
+    public Resume createResumeForUser(Resume resume, Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        resume.setUser(user);
+        resume.setCreatedAt(LocalDateTime.now());
+        if (resume.getSkills() != null) {
+            List<Skill> skills = resume.getSkills().stream()
+                    .map(skill -> skillRepository.findById(skill.getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Skill not found with ID: " + skill.getId())))
+                    .collect(Collectors.toList());
+            resume.setSkills(skills);
+        }
+        return resumeRepository.save(resume);
+    }
 }

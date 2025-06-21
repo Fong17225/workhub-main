@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   BriefcaseIcon, 
@@ -11,6 +10,7 @@ import {
   CalendarIcon,
   TagIcon
 } from '@heroicons/react/24/outline';
+import { getJobs, getJobCategories, getJobTypes, getJobPositions, getSkills } from '../apiService';
 
 function Jobs() {
   const location = useLocation();
@@ -42,7 +42,7 @@ function Jobs() {
         if (value) params.append(key, value);
       });
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/workhub/api/v1/jobs?${params.toString()}`, {
+      const response = await getJobs(params.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -54,7 +54,7 @@ function Jobs() {
     queryKey: ['jobCategories'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-categories', {
+      const response = await getJobCategories({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -65,7 +65,7 @@ function Jobs() {
     queryKey: ['jobTypes'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-types', {
+      const response = await getJobTypes({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -76,7 +76,7 @@ function Jobs() {
     queryKey: ['jobPositions'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/job-positions', {
+      const response = await getJobPositions({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;
@@ -87,7 +87,7 @@ function Jobs() {
     queryKey: ['skills'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/workhub/api/v1/skill', {
+      const response = await getSkills({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       return response.data;

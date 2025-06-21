@@ -100,7 +100,7 @@ function Navbar() {
                       <div className="py-1">
                         {user && user.role?.toLowerCase() === 'admin' ? (
                           <Link
-                            to="/admin-dashboard"
+                            to="/admin/stats"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             onClick={() => setIsDropdownOpen(false)}
                           >
@@ -136,6 +136,15 @@ function Navbar() {
                           <LogoutIcon className="h-4 w-4 mr-2" />
                           Đăng xuất
                         </button>
+                        {user && user.role?.toLowerCase() === 'recruiter' && (
+                          <Link
+                            to="/interview-dashboard"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            Dashboard nhà tuyển dụng
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )}
@@ -229,6 +238,13 @@ function Navbar() {
                   <LogoutIcon className="h-5 w-5 mr-2" />
                   Đăng xuất
                 </button>
+                <Link
+                  to="/interview-dashboard"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard nhà tuyển dụng
+                </Link>
               </>
             ) : (
               <div className="flex flex-col">

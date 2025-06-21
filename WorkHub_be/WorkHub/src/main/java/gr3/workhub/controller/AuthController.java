@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Map;
+
 @Tag(name = "✅ Authentication", description = "API xác thực cho ứng viên, nhà tuyển dụng và admin")
 @RestController
 @CrossOrigin
@@ -106,9 +108,10 @@ public class AuthController {
 
     @Operation(summary = "Đăng nhập tự động phân role", description = "Đăng nhập bằng email và password, backend tự xác định role")
     @PostMapping("/login")
-    public String loginAutoRole(
+    public Map<String, String> loginAutoRole(
             @Parameter(description = "Email") @RequestParam String email,
             @Parameter(description = "Mật khẩu") @RequestParam String password) {
-        return userService.loginAutoRole(email, password);
+        String token = userService.loginAutoRole(email, password);
+        return java.util.Map.of("token", token);
     }
 }

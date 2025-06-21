@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import { createInterviewSession, createInterviewSlot } from '../apiService';
 
 const CreateSessionAndSlots = ({ jobId: propJobId, onSessionCreated }) => {
   const { jobId: paramJobId } = useParams();
@@ -25,20 +25,21 @@ const CreateSessionAndSlots = ({ jobId: propJobId, onSessionCreated }) => {
     try {
       const token = localStorage.getItem('token');
       // 1. Tạo session cho job
-      const sessionRes = await axios.post('http://localhost:8080/workhub/api/v1/interview-sessions', {
-        jobId,
+      const sessionRes = await createInterviewSession({
         title: sessionTitle,
         startTime,
         endTime,
+        jobId: jobId,
       }, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const session = sessionRes.data;
-      // 2. Tạo các slot cho session
+      // 2. Tạo các slot cho session (không truyền candidateId nếu chưa có ứng viên)
       for (const slot of slots) {
-        await axios.post('http://localhost:8080/workhub/api/v1/interview-slots/by-job', null, {
+        await createInterviewSlot(null, {
           params: {
-            jobId,
+            sessionId: session.id,
+            jobId: jobId,
             startTime: slot.startTime,
             endTime: slot.endTime,
           },
@@ -48,7 +49,7 @@ const CreateSessionAndSlots = ({ jobId: propJobId, onSessionCreated }) => {
       setMessage('Tạo phiên phỏng vấn và các slot thành công!');
       if (onSessionCreated) onSessionCreated(session);
     } catch (err) {
-      setMessage('Có lỗi khi tạo phiên hoặc slot!');
+      setMessage('Có lỗi khi tạo phiên phỏng vấn!');
     }
   };
 
