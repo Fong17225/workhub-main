@@ -7,6 +7,7 @@ public class InterviewSlotResponseDTO {
     private UUID id;
     private LocalDateTime startTime;
     private boolean booked;
+    private String candidateName; // Thêm trường này
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -16,4 +17,7 @@ public class InterviewSlotResponseDTO {
 
     public boolean isBooked() { return booked; }
     public void setBooked(boolean booked) { this.booked = booked; }
+
+    public String getCandidateName() { return candidateName; }
+    public void setCandidateName(String candidateName) { this.candidateName = candidateName; }
 }

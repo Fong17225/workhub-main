@@ -2,6 +2,8 @@ package gr3.workhub.controller;
 
 import gr3.workhub.dto.CompanyProfileDTO;
 import gr3.workhub.entity.CompanyProfile;
+import gr3.workhub.entity.User;
+import gr3.workhub.repository.UserRepository;
 import gr3.workhub.service.CompanyProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +29,7 @@ import java.util.List;
 public class CompanyProfileController {
 
     private final CompanyProfileService companyProfileService;
+    private final UserRepository userRepository;
 
     @Operation(
             summary = "Tạo hồ sơ công ty",
@@ -136,6 +139,16 @@ public class CompanyProfileController {
     public ResponseEntity<Void> deleteCompanyProfile(@PathVariable Integer id) {
         companyProfileService.deleteCompanyProfile(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Lấy hồ sơ công ty theo recruiter (user) id
+    @GetMapping("/by-recruiter/{userId}")
+    public ResponseEntity<CompanyProfile> getCompanyByRecruiter(@PathVariable Integer userId) {
+        User recruiter = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
+        List<CompanyProfile> companies = companyProfileService.getCompanyProfilesByRecruiter(recruiter);
+        if (companies.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(companies.get(0)); // hoặc trả về danh sách nếu muốn
     }
 
 }

@@ -55,6 +55,7 @@ public class InterviewSlotController {
             dto.setId(slot.getId());
             dto.setStartTime(slot.getStartTime());
             dto.setBooked(slot.getCandidate() != null); // Nếu đã có candidate thì đã được đặt
+            dto.setCandidateName(slot.getCandidate() != null ? slot.getCandidate().getFullname() : null); // Thêm dòng này
             return dto;
         }).toList();
         return ResponseEntity.ok(dtos);
@@ -78,5 +79,11 @@ public class InterviewSlotController {
             setStartTime(slot.getStartTime());
             setBooked(slot.getCandidate() != null);
         }});
+    }
+
+    @DeleteMapping("/{slotId}")
+    public ResponseEntity<Void> deleteSlot(@PathVariable UUID slotId) {
+        slotService.deleteSlot(slotId);
+        return ResponseEntity.noContent().build();
     }
 }

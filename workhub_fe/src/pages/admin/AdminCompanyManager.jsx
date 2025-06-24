@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getCompanies, getCompanyById, getRecruiters, createCompanyByRecruiter, updateCompanyById, deleteCompanyById } from '../../apiService';
+import { BuildingOffice2Icon, UserGroupIcon, XMarkIcon, PencilSquareIcon, TrashIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function AdminCompanyManager() {
   const [companies, setCompanies] = useState([]);
@@ -9,6 +10,7 @@ export default function AdminCompanyManager() {
   const [recruiters, setRecruiters] = useState([]);
   const [formData, setFormData] = useState({ recruiterId: '', name: '', industry: '', location: '', description: '', website: '', status: 'active', inspection: 'none' });
   const [editMode, setEditMode] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -99,76 +101,161 @@ export default function AdminCompanyManager() {
   };
 
   return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold mb-6 text-blue-700">Quản lý công ty</h2>
-      <button className="mb-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setShowForm(f => !f)}>{showForm ? 'Đóng' : 'Tạo công ty mới'}</button>
-      {showForm && (
-        <form className="bg-white rounded-xl shadow p-6 mb-6" onSubmit={editMode ? handleUpdateCompany : handleCreateCompany}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select className="border p-2 rounded" value={formData.recruiterId} onChange={e => setFormData(f => ({ ...f, recruiterId: e.target.value }))} required>
-              <option value="">Chọn nhà tuyển dụng</option>
-              {recruiters.map(r => <option key={r.id} value={r.id}>{r.fullname} ({r.email})</option>)}
-            </select>
-            <input className="border p-2 rounded" placeholder="Tên công ty" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} required />
-            <input className="border p-2 rounded" placeholder="Ngành nghề" value={formData.industry} onChange={e => setFormData(f => ({ ...f, industry: e.target.value }))} />
-            <input className="border p-2 rounded" placeholder="Địa chỉ" value={formData.location} onChange={e => setFormData(f => ({ ...f, location: e.target.value }))} />
-            <input className="border p-2 rounded" placeholder="Website" value={formData.website} onChange={e => setFormData(f => ({ ...f, website: e.target.value }))} />
-            <select className="border p-2 rounded" value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
-              <option value="active">Hoạt động</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="inactive">Ngừng hoạt động</option>
-            </select>
-            <select className="border p-2 rounded" value={formData.inspection} onChange={e => setFormData(f => ({ ...f, inspection: e.target.value }))}>
-              <option value="none">Chưa kiểm định</option>
-              <option value="prestige">Uy tín</option>
-            </select>
-            <textarea className="border p-2 rounded col-span-2" placeholder="Mô tả" value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" type="submit">{editMode ? 'Cập nhật công ty' : 'Tạo công ty'}</button>
-            <button className="px-4 py-2 bg-gray-300 rounded" type="button" onClick={() => setShowForm(false)}>Hủy</button>
-          </div>
-        </form>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {companies.map(company => (
-          <div
-            key={company.id}
-            className={`p-4 rounded shadow cursor-pointer border ${selectedCompany?.id === company.id ? 'border-blue-500 bg-blue-50' : 'bg-white'}`}
-            onClick={() => handleSelectCompany(company.id)}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 py-10 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-extrabold text-blue-700 flex items-center gap-2">
+            <BuildingOffice2Icon className="w-8 h-8 text-primary" /> Quản lý công ty
+          </h2>
+          <button
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-lg font-semibold shadow hover:bg-accent transition"
+            onClick={() => setShowForm(f => !f)}
           >
-            <div className="font-semibold text-blue-700">{company.name}</div>
-            <div className="text-gray-500 text-sm">{company.email}</div>
-            <div className="text-gray-400 text-xs">ID: {company.id}</div>
+            <PlusIcon className="w-5 h-5" /> {showForm ? 'Đóng' : 'Tạo công ty mới'}
+          </button>
+        </div>
+        <div className="flex items-center mb-4">
+          <input
+            type="text"
+            className="w-full max-w-xs px-4 py-2 border rounded shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="Tìm kiếm theo tên, ngành, địa điểm..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl relative" onSubmit={editMode ? handleUpdateCompany : handleCreateCompany}>
+              <button type="button" className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded" onClick={() => setShowForm(false)}>
+                <XMarkIcon className="w-6 h-6 text-gray-500" />
+              </button>
+              <h3 className="text-xl font-bold mb-6 text-primary">{editMode ? 'Cập nhật công ty' : 'Tạo công ty mới'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold mb-1">Nhà tuyển dụng</label>
+                  <select className="w-full px-4 py-2 border rounded" value={formData.recruiterId} onChange={e => setFormData(f => ({ ...f, recruiterId: e.target.value }))} required>
+                    <option value="">Chọn nhà tuyển dụng</option>
+                    {recruiters.map(r => <option key={r.id} value={r.id}>{r.fullname} ({r.email})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Tên công ty</label>
+                  <input className="w-full px-4 py-2 border rounded" placeholder="Tên công ty" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} required />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Ngành nghề</label>
+                  <input className="w-full px-4 py-2 border rounded" placeholder="Ngành nghề" value={formData.industry} onChange={e => setFormData(f => ({ ...f, industry: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Địa chỉ</label>
+                  <input className="w-full px-4 py-2 border rounded" placeholder="Địa chỉ" value={formData.location} onChange={e => setFormData(f => ({ ...f, location: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Website</label>
+                  <input className="w-full px-4 py-2 border rounded" placeholder="Website" value={formData.website} onChange={e => setFormData(f => ({ ...f, website: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Trạng thái</label>
+                  <select className="w-full px-4 py-2 border rounded" value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
+                    <option value="active">Hoạt động</option>
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="inactive">Ngừng hoạt động</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Kiểm định</label>
+                  <select className="w-full px-4 py-2 border rounded" value={formData.inspection} onChange={e => setFormData(f => ({ ...f, inspection: e.target.value }))}>
+                    <option value="none">Chưa kiểm định</option>
+                    <option value="prestige">Uy tín</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block font-semibold mb-1">Mô tả</label>
+                  <textarea className="w-full px-4 py-2 border rounded" placeholder="Mô tả" value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} />
+                </div>
+              </div>
+              <div className="mt-6 flex gap-2 justify-end">
+                <button className="px-4 py-2 bg-primary text-white rounded font-semibold flex items-center gap-1" type="submit">
+                  <CheckIcon className="w-5 h-5" /> {editMode ? 'Cập nhật công ty' : 'Tạo công ty'}
+                </button>
+                <button className="px-4 py-2 bg-gray-300 rounded font-semibold" type="button" onClick={() => setShowForm(false)}>Hủy</button>
+              </div>
+            </form>
           </div>
-        ))}
-      </div>
-      {selectedCompany && !showForm && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-xl font-bold mb-4 text-blue-700">Thông tin chi tiết công ty</h3>
-          {loading ? 'Đang tải...' : (
-            <div className="space-y-2">
-              <div><b>ID:</b> {selectedCompany.id}</div>
-              <div><b>Tên công ty:</b> {selectedCompany.name}</div>
-              <div><b>Email recruiter:</b> {selectedCompany.recruiter?.email || '-'}</div>
-              <div><b>Recruiter ID:</b> {selectedCompany.recruiter?.id || '-'}</div>
-              <div><b>Industry:</b> {selectedCompany.industry || '-'}</div>
-              <div><b>Location:</b> {selectedCompany.location || '-'}</div>
-              <div><b>Description:</b> {selectedCompany.description || '-'}</div>
-              <div><b>Website:</b> {selectedCompany.website || '-'}</div>
-              <div><b>Inspection Status:</b> {selectedCompany.inspectionStatus || '-'}</div>
-              <div><b>Inspection:</b> {selectedCompany.inspection || '-'}</div>
-              <div><b>Status:</b> {selectedCompany.status || '-'}</div>
-              <div><b>Created At:</b> {selectedCompany.createdAt || '-'}</div>
-              <div><b>Logo:</b> {selectedCompany.logo ? <span className="text-green-600">Có file</span> : 'Không có'}</div>
-              <div className="flex gap-2 mt-4">
-                <button className="px-4 py-2 bg-yellow-500 text-white rounded" onClick={handleEditCompany}>Sửa</button>
-                <button className="px-4 py-2 bg-red-500 text-white rounded" onClick={() => handleDeleteCompany(selectedCompany.id)}>Xóa</button>
+        )}
+        <div className="bg-white rounded-2xl shadow-xl p-6 overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr className="bg-blue-50">
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Tên công ty</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Ngành</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Địa điểm</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Trạng thái</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-700">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {companies.filter(company =>
+                company.name?.toLowerCase().includes(search.toLowerCase()) ||
+                company.industry?.toLowerCase().includes(search.toLowerCase()) ||
+                company.location?.toLowerCase().includes(search.toLowerCase())
+              ).map(company => (
+                <tr key={company.id} className="hover:bg-blue-50 transition">
+                  <td className="px-4 py-2">{company.name}</td>
+                  <td className="px-4 py-2">{company.industry}</td>
+                  <td className="px-4 py-2">{company.location}</td>
+                  <td className="px-4 py-2">{company.status}</td>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    <button className="p-2 rounded hover:bg-blue-100" onClick={() => handleEditCompany(company)} title="Sửa">
+                      <PencilSquareIcon className="w-5 h-5 text-blue-600" />
+                    </button>
+                    <button className="p-2 rounded hover:bg-red-100" onClick={() => handleDeleteCompany(company.id)} title="Xóa">
+                      <TrashIcon className="w-5 h-5 text-red-600" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {selectedCompany && !showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg relative">
+              <button type="button" className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded" onClick={() => setSelectedCompany(null)}>
+                <XMarkIcon className="w-6 h-6 text-gray-500" />
+              </button>
+              <h3 className="text-xl font-bold mb-4 text-primary flex items-center gap-2">
+                <BuildingOffice2Icon className="w-6 h-6 text-primary" /> {selectedCompany.name}
+              </h3>
+              <div className="space-y-2">
+                <div><b>ID:</b> {selectedCompany.id}</div>
+                <div><b>Tên công ty:</b> {selectedCompany.name}</div>
+                <div><b>Email recruiter:</b> {selectedCompany.recruiter?.email || '-'}</div>
+                <div><b>Recruiter ID:</b> {selectedCompany.recruiter?.id || '-'}</div>
+                <div><b>Industry:</b> {selectedCompany.industry || '-'}</div>
+                <div><b>Location:</b> {selectedCompany.location || '-'}</div>
+                <div><b>Description:</b> {selectedCompany.description || '-'}</div>
+                <div><b>Website:</b> {selectedCompany.website || '-'}</div>
+                <div><b>Inspection Status:</b> {selectedCompany.inspectionStatus || '-'}</div>
+                <div><b>Inspection:</b> {selectedCompany.inspection || '-'}</div>
+                <div><b>Status:</b> {selectedCompany.status || '-'}</div>
+                <div><b>Created At:</b> {selectedCompany.createdAt || '-'}</div>
+                <div><b>Logo:</b> {selectedCompany.logo ? <span className="text-green-600">Có file</span> : 'Không có'}</div>
+                <div className="flex gap-2 mt-4">
+                  <button className="p-2 rounded hover:bg-yellow-100" onClick={handleEditCompany} title="Sửa">
+                    <PencilSquareIcon className="w-5 h-5 text-yellow-600" />
+                  </button>
+                  <button className="p-2 rounded hover:bg-red-100" onClick={() => handleDeleteCompany(selectedCompany.id)} title="Xóa">
+                    <TrashIcon className="w-5 h-5 text-red-600" />
+                  </button>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+      {/* Kết thúc max-w-6xl mx-auto */}
     </div>
+    // Kết thúc min-h-screen ...
   );
 }

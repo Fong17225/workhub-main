@@ -1,5 +1,6 @@
 // src/apiService.js
 import axios from 'axios';
+import { Client } from '@stomp/stompjs';
 
 const API_BASE_URL = 'http://localhost:8080/workhub/api/v1';
 
@@ -160,3 +161,53 @@ export const createServicePackage = (data, config) => axios.post(`${API_BASE_URL
 export const updateServicePackage = (id, data, config) => axios.put(`${API_BASE_URL}/service-packages/${id}`, data, config);
 export const deleteServicePackage = (id, config) => axios.delete(`${API_BASE_URL}/service-packages/${id}`, config);
 export const buyServicePackage = (userId, packageId, config) => axios.post(`${API_BASE_URL}/user-packages/buy`, null, { ...config, params: { userId, packageId } });
+export const getRecruiterJobs = (config = {}) => axios.get(`${API_BASE_URL}/jobs/recruiter`, config);
+
+// Notification APIs
+export const getNotifications = (userId, config) => axios.get(`${API_BASE_URL}/notifications/${userId}`, config);
+
+// User Benefits API
+export const getUserBenefits = (userId, config) => axios.get(`${API_BASE_URL}/user-benefits/user/${userId}`, config);
+
+// User Packages API
+export const getUserPackages = (userId, config) => axios.get(`${API_BASE_URL}/user-packages/user/${userId}`, config);
+export const updateUserPackage = (id, data, config) => axios.put(`${API_BASE_URL}/user-packages/${id}`, data, config);
+export const deleteUserPackage = (id, config) => axios.delete(`${API_BASE_URL}/user-packages/${id}`, config);
+export const createUserPackage = (data, config) => axios.post(`${API_BASE_URL}/user-packages`, data, config);
+
+// Notification WebSocket (STOMP) - native WebSocket only, không dùng SockJS để tránh lỗi global
+export function createNotificationSocket(userId, onMessage) {
+  const client = new Client({
+    brokerURL: 'ws://localhost:8080/ws', // native WebSocket
+    reconnectDelay: 5000,
+    onConnect: () => {
+      client.subscribe(`/topic/notifications/${userId}`, (msg) => {
+        if (msg.body) {
+          onMessage(JSON.parse(msg.body));
+        }
+      });
+    },
+    // Nếu cần auth, thêm header ở đây
+    // connectHeaders: { Authorization: 'Bearer ...' }
+  });
+  client.activate();
+  return client;
+}
+
+export const getCurrentUser = (config = {}) => axios.get(`${API_BASE_URL}/users/me`, config);
+export const getCompanyByRecruiter = (userId, config) => axios.get(`${API_BASE_URL}/companies/by-recruiter/${userId}`, config);
+export const deleteInterviewSlot = (slotId, config) => axios.delete(`${API_BASE_URL}/interview-slots/${slotId}`, config);
+export const deleteInterviewSession = (sessionId, config) => axios.delete(`${API_BASE_URL}/interview-sessions/${sessionId}`, config);
+export const createVnpayPaymentUrl = (packageId, price, orderInfo, renew = false) =>
+  axios.post(`${API_BASE_URL}/payments/vnpay/create`, null, {
+    params: { packageId, price, orderInfo, renew },
+  }).then(res => res.data);
+export const createPaypalOrder = (amount, currency, returnUrl, cancelUrl) =>
+  axios.post(`${API_BASE_URL}/payments/paypal/create`, null, {
+    params: { amount, currency, returnUrl, cancelUrl },
+  }).then(res => res.data);
+
+export const capturePaypalOrder = (orderId) =>
+  axios.post(`${API_BASE_URL}/payments/paypal/capture`, null, {
+    params: { orderId },
+  }).then(res => res.data);

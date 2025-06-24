@@ -101,4 +101,19 @@ public class InterviewSessionController {
             return new RedirectView("/error/invalid-session");
         }
     }
+
+    @Operation(summary = "Xóa phiên phỏng vấn", description = "Xóa phiên phỏng vấn và toàn bộ slot, application liên quan")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSession(@PathVariable("id") UUID id) {
+        sessionService.deleteSessionById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Test gửi mail", description = "Gửi mail test đến địa chỉ email chỉ định để kiểm tra hệ thống gửi mail")
+    @PreAuthorize("permitAll()")
+    @PostMapping("/test-email")
+    public ResponseEntity<String> sendTestEmail(@RequestParam String to) {
+        sessionService.sendTestEmail(to);
+        return ResponseEntity.ok("Test email sent (nếu cấu hình đúng sẽ nhận được mail, kiểm tra log nếu không nhận được)");
+    }
 }

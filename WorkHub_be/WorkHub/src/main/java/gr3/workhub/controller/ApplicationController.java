@@ -50,13 +50,24 @@ public class ApplicationController {
             description = "Ứng viên ứng tuyển vào công việc, chọn slot phỏng vấn phù hợp. Truyền jobId, resumeId, slotId."
     )
     @PostMapping("/{jobId}/with-slot")
-    public ResponseEntity<Application> applyForJobWithSlot(
+    public ResponseEntity<ApplicationDTO> applyForJobWithSlot(
             @Parameter(description = "ID của công việc cần ứng tuyển", example = "3") @PathVariable Integer jobId,
             @Parameter(description = "ID của resume được chọn", example = "1") @RequestParam("resumeId") Integer resumeId,
             @Parameter(description = "ID của slot phỏng vấn", example = "uuid") @RequestParam("slotId") String slotId,
             HttpServletRequest request) {
         Application application = applicationService.applyForJobWithSlot(jobId, resumeId, slotId, request);
-        return ResponseEntity.ok(application);
+        ApplicationDTO dto = new ApplicationDTO(
+            application.getId(),
+            application.getJob().getTitle(),
+            application.getCandidate().getFullname(),
+            application.getCandidate().getEmail(),
+            application.getCandidate().getPhone(),
+            application.getStatus() != null ? application.getStatus().toString() : null,
+            application.getAppliedAt(),
+            application.getResume() != null ? application.getResume().getFile() : null,
+            application.getResume() != null ? application.getResume().getId() : null
+        );
+        return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/{jobId}/resumes")

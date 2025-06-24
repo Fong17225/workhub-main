@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class InterviewSessionService {
+    private static final Logger logger = LoggerFactory.getLogger(InterviewSessionService.class);
     private final InterviewSessionRepository sessionRepo;
     private final UserRepository userRepo;
     private final EmailService emailService;
@@ -198,5 +201,22 @@ public class InterviewSessionService {
         String recruiterId = parseRecruiterIdFromJwt(jwt);
         String recruiterCode = getRecruiterCodeByUserId(Integer.parseInt(recruiterId));
         return "https://workhub.app.100ms.live/preview/" + recruiterCode;
+    }
+
+    // Xóa phiên phỏng vấn và toàn bộ slot, application liên quan
+    public void deleteSessionById(UUID id) {
+        // TODO: Xóa các slot và application liên quan nếu cần
+        sessionRepo.deleteById(id);
+    }
+
+    // Hàm test gửi mail đơn giản
+    public void sendTestEmail(String to) {
+        String subject = "Test Email from WorkHub";
+        String body = "This is a test email from WorkHub system. If you receive this, email sending is working.";
+        try {
+            emailService.sendinterview(to, subject, body);
+        } catch (Exception e) {
+            logger.error("Test email failed: {}", e.getMessage());
+        }
     }
 }

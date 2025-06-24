@@ -41,232 +41,75 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow">
+    <nav className="bg-white shadow-nav font-heading">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-3xl font-bold text-primary">
-                WorkHub
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                to="/jobs"
-                className="border-transparent text-gray-500 hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Tìm việc
-              </Link>
-              <Link
-                to="/companies"
-                className="border-transparent text-gray-500 hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Công ty
-              </Link>
-              <Link
-                to="/resources"
-                className="border-transparent text-gray-500 hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Tài nguyên
-              </Link>
+        <div className="flex justify-between h-20 items-center">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-2 text-3xl font-bold text-primary font-heading">
+              <img src="/workhub-logo.png" alt="WorkHub Logo" className="h-10 w-auto" />
+              
+            </Link>
+            <div className="hidden md:flex gap-6 text-base font-medium">
+              <Link to="/jobs" className="hover:text-primary transition">Việc làm</Link>
+              <Link to="/companies" className="hover:text-primary transition">Công ty</Link>
+              <Link to="/pricing" className="hover:text-primary transition">Bảng giá</Link>
+              <Link to="/about" className="hover:text-primary transition">Về chúng tôi</Link>
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <div className="flex-shrink-0">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm việc làm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleSearch}
-                  className="w-64 pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-                <SearchIcon className="absolute left-3 top-2.5 text-gray-400" />
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                className="rounded-full border border-border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-secondary text-dark w-56"
+                placeholder="Tìm việc, công ty..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
+              />
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary"
+                onClick={handleSearch}
+                aria-label="Tìm kiếm"
+              >
+                <SearchIcon />
+              </button>
             </div>
-            <div className="ml-4 relative">
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-primary focus:outline-none"
-                  >
-                    <AccountCircleIcon className="h-12 w-12" />
-                    <span className="text-sm font-medium">{user.fullName}</span>
-                  </button>
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                      <div className="py-1">
-                        {user && user.role?.toLowerCase() === 'admin' ? (
-                          <Link
-                            to="/admin/stats"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => setIsDropdownOpen(false)}
-                          >
-                            Dashboard
-                          </Link>
-                        ) : (
-                          <Link
-                            to="/profile"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => setIsDropdownOpen(false)}
-                          >
-                            Hồ sơ
-                          </Link>
-                        )}
-                        <Link
-                          to="/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          Cài đặt
-                        </Link>
-                        <div className="border-t border-gray-100"></div>
-                        <button
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <span className="mr-2">🔔</span> Thông báo
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                        >
-                          <LogoutIcon className="h-4 w-4 mr-2" />
-                          Đăng xuất
-                        </button>
-                        {user && user.role?.toLowerCase() === 'recruiter' && (
-                          <Link
-                            to="/interview-dashboard"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => setIsDropdownOpen(false)}
-                          >
-                            Dashboard nhà tuyển dụng
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  >
-                    Đăng nhập
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary bg-white hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ml-2"
-                  >
-                    Đăng ký
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="-mr-2 flex items-center sm:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-            >
-              <span className="sr-only">Open main menu</span>
-              {isMenuOpen ? (
-                <CloseIcon className="block h-6 w-6" />
-              ) : (
-                <MenuIcon className="block h-6 w-6" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {isMenuOpen && (
-        <div className="sm:hidden">
-          <div className="pt-2 pb-3 space-y-1">
-            <Link
-              to="/jobs"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Tìm việc
-            </Link>
-            <Link
-              to="/companies"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Công ty
-            </Link>
-            <Link
-              to="/resources"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Tài nguyên
-            </Link>
             {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Hồ sơ
-                </Link>
-                <Link
-                  to="/settings"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Cài đặt
-                </Link>
-                <div className="border-t border-gray-100"></div>
+              <div className="relative">
                 <button
-                  className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary flex items-center"
-                  onClick={() => alert('Chức năng thông báo sẽ cập nhật sau!')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white font-semibold hover:bg-accent transition"
+                  onClick={() => setIsDropdownOpen(v => !v)}
                 >
-                  <span className="mr-2">🔔</span>
-                  Thông báo
+                  <AccountCircleIcon />
+                  {user.name || 'Tài khoản'}
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary flex items-center"
-                >
-                  <LogoutIcon className="h-5 w-5 mr-2" />
-                  Đăng xuất
-                </button>
-                <Link
-                  to="/interview-dashboard"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard nhà tuyển dụng
-                </Link>
-              </>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-card z-50 py-2">
+                    {user && user.role === 'admin' ? (
+                      <Link to="/admin/stats" className="block px-4 py-2 hover:bg-secondary text-dark">Bảng điều khiển</Link>
+                    ) : (
+                      <>
+                        <Link to={user && user.role === 'recruiter' ? `/profile/${user.id}` : '/profile'} className="block px-4 py-2 hover:bg-secondary text-dark">Hồ sơ cá nhân</Link>
+                        {(user && user.role === 'recruiter') && (
+                          <Link to="/dashboard" className="block px-4 py-2 hover:bg-secondary text-dark">Bảng điều khiển</Link>
+                        )}
+                      </>
+                    )}
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-secondary text-danger flex items-center gap-2">
+                      <LogoutIcon fontSize="small" /> Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="flex flex-col">
-                <Link
-                  to="/login"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-primary hover:text-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  to="/register"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-primary bg-white hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Đăng ký
-                </Link>
+              <div className="flex gap-2">
+                <Link to="/login" className="px-4 py-2 rounded-full bg-primary text-white font-semibold hover:bg-accent transition">Đăng nhập</Link>
+                <Link to="/register" className="px-4 py-2 rounded-full border border-primary text-primary font-semibold hover:bg-primary hover:text-white transition">Đăng ký</Link>
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

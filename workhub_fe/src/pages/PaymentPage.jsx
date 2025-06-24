@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { buyServicePackage } from '../apiService';
+import { buyServicePackage, createVnpayPaymentUrl, createPaypalOrder, capturePaypalOrder } from '../apiService';
 
 const paymentMethods = [
+  { value: 'paypal', label: 'PayPal', icon: 'https://www.paypalobjects.com/webstatic/icon/pp258.png' },
   { value: 'momo', label: 'Ví MoMo', qr: 'https://img.vietqr.io/image/970422-123456789-compact2.png?amount=AMOUNT&addInfo=MoMo+Payment' },
   { value: 'vnpay', label: 'VNPAY', qr: 'https://img.vietqr.io/image/970422-123456789-compact2.png?amount=AMOUNT&addInfo=VNPAY+Payment' },
   { value: 'banking', label: 'Chuyển khoản ngân hàng', qr: 'https://img.vietqr.io/image/970422-123456789-compact2.png?amount=AMOUNT&addInfo=Banking+Payment' },
@@ -49,6 +50,30 @@ export default function PaymentPage() {
     }, 1200);
   };
 
+  const handleVnpay = async () => {
+    setBuying(true);
+    try {
+      const url = await createVnpayPaymentUrl(pkg.id, pkg.price, `Thanh toán gói ${pkg.name}`);
+      window.location.href = url;
+    } catch (e) {
+      alert('Không tạo được link thanh toán VNPAY!');
+    }
+    setBuying(false);
+  };
+
+  const handlePaypal = async () => {
+    setBuying(true);
+    try {
+      const returnUrl = `${window.location.origin}/payment-confirm?paypal=1&pkgId=${pkg.id}`;
+      const cancelUrl = `${window.location.origin}/payment-cancel`;
+      const approvalUrl = await createPaypalOrder(pkg.price, 'USD', returnUrl, cancelUrl);
+      window.location.href = approvalUrl;
+    } catch (e) {
+      alert('Không tạo được link thanh toán PayPal!');
+    }
+    setBuying(false);
+  };
+
   // Hàm này sẽ được gọi khi xác nhận thanh toán từ điện thoại (giả lập qua link)
   window.onPaymentConfirmed = async function () {
     setWaiting(true);
@@ -62,6 +87,25 @@ export default function PaymentPage() {
   };
 
   React.useEffect(() => {
+    // Tự động xác nhận PayPal nếu có orderId trên URL
+    const params = new URLSearchParams(window.location.search);
+    const paypalOrderId = params.get('token'); // PayPal trả về ?token=ORDER_ID
+    if (paypalOrderId) {
+      setWaiting(true);
+      capturePaypalOrder(paypalOrderId)
+        .then(success => {
+          if (success) {
+            // Gọi API kích hoạt gói cho user
+            buyServicePackage(JSON.parse(atob(localStorage.getItem('token').split('.')[1])).id, pkg.id, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+              .then(() => afterPayment())
+              .catch(() => alert('Kích hoạt gói thất bại!'));
+          } else {
+            alert('Xác nhận thanh toán PayPal thất bại!');
+          }
+        })
+        .finally(() => setWaiting(false));
+    }
+
     function handlePaymentMsg(e) {
       if (e.data && e.data.type === 'PAYMENT_CONFIRMED' && e.data.pkgId === String(pkg.id)) {
         setWaiting(true);
@@ -104,15 +148,24 @@ export default function PaymentPage() {
         >
           Tôi đã thanh toán xong
         </button>
+        <button
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded mt-2"
+          onClick={handleVnpay}
+          disabled={waiting || success || method !== 'vnpay'}
+        >
+          Thanh toán qua VNPAY
+        </button>
+        {method === 'paypal' && (
+          <button onClick={handlePaypal} disabled={buying} className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded w-full mb-2 flex items-center justify-center">
+            <img src="https://www.paypalobjects.com/webstatic/icon/pp258.png" alt="PayPal" className="h-6 mr-2" />
+            Thanh toán qua PayPal
+          </button>
+        )}
         {waiting && (
-          <div className="mt-4 text-blue-700 font-bold text-center">
-            Đang xác nhận thanh toán...
-          </div>
+          <div className="mt-4 text-blue-600 font-semibold">Đang xác nhận thanh toán PayPal...</div>
         )}
         {success && (
-          <div className="mt-4 text-green-700 font-bold text-center">
-            Thanh toán thành công! Đang kích hoạt gói...
-          </div>
+          <div className="mt-4 text-green-600 font-semibold">Thanh toán thành công! Gói đã được kích hoạt.</div>
         )}
         <button
           className="w-full px-4 py-2 bg-gray-300 rounded mt-2"

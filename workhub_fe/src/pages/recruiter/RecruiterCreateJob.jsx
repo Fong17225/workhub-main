@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createJob, getJobCategories, getJobTypes, getJobPositions, getSkills } from '../../apiService';
-import { getUserBenefits } from '../../api/getUserBenefits';
+import { createJob, getJobCategories, getJobTypes, getJobPositions, getSkills, getUserBenefits } from '../../apiService';
 import { useNavigate } from 'react-router-dom';
 
 function getUserIdFromToken() {

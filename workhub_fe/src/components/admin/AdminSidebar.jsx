@@ -11,14 +11,11 @@ const adminFunctions = [
   { title: 'Quản lý danh mục công việc', path: '/admin/job-categories', icon: '📚' },
   { title: 'Quản lý công ty', path: '/admin/company-manager', icon: '🏭' },
   { title: 'Quản lý ứng tuyển', path: '/admin/applications', icon: '📝' },
-  { title: 'Quản lý phỏng vấn', path: '/admin/interviews', icon: '🎤' },
-  { title: 'Quản lý kỹ năng & gói dịch vụ', path: '/admin/services', icon: '🎯' },
+  { title: 'Quản lý phiên phỏng vấn', path: '/admin/interview-sessions', icon: '🎤' },
+  { title: 'Quản lý slot phỏng vấn', path: '/admin/interview-slots', icon: '⏰' },
   { title: 'Quản lý gói dịch vụ', path: '/admin/service-packages', icon: '💎' },
-  { title: 'Quản lý thông báo & tin nhắn', path: '/admin/communications', icon: '✉️' },
-  { title: 'Quản lý đánh giá & hồ sơ', path: '/admin/profiles', icon: '📄' },
-  { title: 'Quản lý giao dịch', path: '/admin/transactions', icon: '💳' },
-  { title: 'Nhật ký hoạt động admin', path: '/admin/admin-logs', icon: '📋' },
   { title: 'Quản lý recruiter đã mua gói', path: '/admin/recruiter-packages', icon: '🛒' },
+
 ];
 
 export default function AdminSidebar() {
@@ -26,7 +23,9 @@ export default function AdminSidebar() {
   return (
     <aside className="w-64 bg-white shadow-lg flex flex-col min-h-screen">
       <div className="h-16 flex items-center justify-center border-b">
-        <span className="text-2xl font-bold text-blue-700 tracking-wide">WorkHub Admin</span>
+        <Link to="/" className="text-2xl font-bold text-blue-700 tracking-wide flex items-center">
+          <img src="/workhub-logo.png" alt="WorkHub Logo" className="h-10 w-auto object-contain" />
+        </Link>
       </div>
       <nav className="flex-1 py-6">
         {adminFunctions.map((func) => (

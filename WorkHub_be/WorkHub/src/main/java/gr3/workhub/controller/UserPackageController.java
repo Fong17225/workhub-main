@@ -1,5 +1,6 @@
 package gr3.workhub.controller;
 
+import gr3.workhub.dto.UserPackageAdminDTO;
 import gr3.workhub.entity.UserPackage;
 import gr3.workhub.service.UserPackageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,11 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Tag(name = "✅User Package", description = "Theo dõi các gói dịch vụ mà người dùng đã mua hoặc đang sử dụng")
 @RestController
 @CrossOrigin
-
 @RequestMapping("/workhub/api/v1/user-packages")
 @RequiredArgsConstructor
 public class UserPackageController {
@@ -26,8 +27,28 @@ public class UserPackageController {
             description = "Dành cho admin để kiểm tra toàn bộ các gói dịch vụ đã được mua hoặc gán cho người dùng."
     )
     @GetMapping
-    public ResponseEntity<List<UserPackage>> getAllUserPackages() {
-        return ResponseEntity.ok(userPackageService.getAllUserPackages());
+    public ResponseEntity<List<UserPackageAdminDTO>> getAllUserPackages() {
+        List<UserPackageAdminDTO> dtos = userPackageService.getAllUserPackages().stream().map(up -> {
+            UserPackageAdminDTO dto = new UserPackageAdminDTO();
+            dto.setId(up.getId());
+            if (up.getUser() != null) {
+                dto.setUserId(up.getUser().getId());
+                dto.setFullname(up.getUser().getFullname());
+                dto.setEmail(up.getUser().getEmail());
+                dto.setRole(up.getUser().getRole() != null ? up.getUser().getRole().name() : null);
+            }
+            if (up.getServicePackage() != null) {
+                dto.setServicePackageId(up.getServicePackage().getId());
+                dto.setServicePackageName(up.getServicePackage().getName());
+                dto.setServicePackageDescription(up.getServicePackage().getDescription());
+            }
+            dto.setPrice(up.getPrice());
+            dto.setStatus(up.getStatus() != null ? up.getStatus().name() : null);
+            dto.setPurchaseDate(up.getPurchaseDate());
+            dto.setExpirationDate(up.getExpirationDate());
+            return dto;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @Operation(

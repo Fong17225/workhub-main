@@ -190,7 +190,7 @@ const JobDetails = () => {
 
     if (!resumes || resumes.length === 0) {
       alert('Bạn chưa có CV nào. Vui lòng tạo CV trước khi nộp.');
-      navigate('/profile');
+      navigate(user?.id ? `/profile/${user.id}` : '/profile');
       return;
     }
 
@@ -243,170 +243,154 @@ const JobDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/10 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Job Header */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start">
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-primary/10">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="flex items-center gap-4">
                   <img
                     src={job.recruiter?.company?.logoUrl || "https://via.placeholder.com/80"}
                     alt={job.recruiter?.companyName || "Company Logo"}
-                    className="w-20 h-20 rounded-lg object-cover"
+                    className="w-20 h-20 rounded-xl object-cover border border-primary/20 shadow"
                   />
-                  <div className="ml-4">
-                    <h1 className="text-2xl font-bold">{job.title}</h1>
-                    <p className="text-gray-600 text-lg">{job.recruiter?.companyName}</p>
-                    <div className="flex items-center text-gray-500 mt-2">
-                      <span className="text-sm mr-4">Địa điểm: {job.location}</span>
-                      <span className="text-sm">Loại công việc: {job.type?.name}</span>
+                  <div>
+                    <h1 className="text-3xl font-extrabold text-primary mb-1">{job.title}</h1>
+                    <p className="text-lg text-dark font-semibold">{job.recruiter?.companyName}</p>
+                    <div className="flex flex-wrap gap-3 mt-2 text-gray-500 text-sm">
+                      <span className="inline-flex items-center gap-1"><i className="fas fa-map-marker-alt"></i> {job.location}</span>
+                      <span className="inline-flex items-center gap-1"><i className="fas fa-briefcase"></i> {job.type?.name}</span>
+                      <span className="inline-flex items-center gap-1"><i className="fas fa-calendar"></i> Đăng: {formatDate(job.createdAt)}</span>
+                      {job.deadline && <span className="inline-flex items-center gap-1"><i className="fas fa-hourglass-end"></i> Hạn nộp: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>}
+                      {job.postAt && <span className="inline-flex items-center gap-1"><i className="fas fa-star"></i> Hình thức đăng: {job.postAt}</span>}
                     </div>
+                    {job.skills && job.skills.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="font-semibold text-primary">Kỹ năng:</span>
+                        {job.skills.map(skill => (
+                          <span key={skill.id || skill} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">{skill.name || skill}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  {!isLoading && user && (
-                    <button
-                      onClick={handleSaveUnsaveClick}
-                      className={`text-gray-600 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed border px-4 py-2 rounded-lg ${isJobSaved ? 'bg-primary/10 text-primary border-primary' : ''}`}
-                      aria-label={isJobSaved ? 'Bỏ lưu việc làm' : 'Lưu việc làm'}
-                      disabled={saveJobMutation.isLoading || unsaveJobMutation.isLoading}
-                    >
-                      {saveJobMutation.isLoading || unsaveJobMutation.isLoading ? (
-                        'Đang xử lý...'
-                      ) : isJobSaved ? (
-                        'Bỏ lưu việc làm'
-                      ) : (
-                        'Lưu việc làm'
-                      )}
-                    </button>
-                  )}
-                  <button className="text-gray-600 hover:text-primary" aria-label="Chia sẻ việc làm">
-                    Chia sẻ
+                <div className="flex flex-col gap-3 min-w-[160px]">
+                  <button
+                    onClick={handleSaveUnsaveClick}
+                    className={`w-full px-4 py-2 rounded-lg font-semibold border transition shadow-sm ${isJobSaved ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-dark border-gray-300 hover:bg-primary/5'}`}
+                    aria-label={isJobSaved ? 'Bỏ lưu việc làm' : 'Lưu việc làm'}
+                    disabled={saveJobMutation.isLoading || unsaveJobMutation.isLoading}
+                  >
+                    {saveJobMutation.isLoading || unsaveJobMutation.isLoading ? (
+                      'Đang xử lý...'
+                    ) : isJobSaved ? (
+                      'Bỏ lưu việc làm'
+                    ) : (
+                      'Lưu việc làm'
+                    )}
+                  </button>
+                 
+                  <button
+                    onClick={handleApplyClick}
+                    className="w-full bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-accent transition shadow"
+                  >
+                    Ứng tuyển ngay
                   </button>
                 </div>
               </div>
-
-              <div className="mt-6 flex flex-wrap gap-4">
-                <div className="flex items-center text-gray-600">
-                  <span>Mức lương: {job.salaryRange}</span>
-                </div>
-                {job.experience !== undefined && job.experience !== null && (
-                  <div className="flex items-center text-gray-600">
-                    <span>Kinh nghiệm: {job.experience}</span>
-                  </div>
-                )}
-                <div className="flex items-center text-gray-600">
-                  <span>Đăng: {new Date(job.createdAt).toLocaleDateString('vi-VN')}</span>
-                </div>
-                {job.deadline && (
-                  <div className="flex items-center text-gray-600">
-                    <span>Hạn nộp: {new Date(job.deadline).toLocaleDateString('vi-VN')}</span>
-                  </div>
-                )}
-                <div className="flex items-center text-gray-600">
-                  <span>Ngành nghề: {job.category?.name}</span>
-                </div>
+              <div className="mt-6 flex flex-wrap gap-4 text-base text-gray-700">
+    
+                {job.category?.name && <div className="flex items-center gap-1"><span className="font-semibold">Ngành nghề:</span> {job.category.name}</div>}
+                {job.position?.name && <div className="flex items-center gap-1"><span className="font-semibold">Vị trí:</span> {job.position.name}</div>}
               </div>
-
-              <div className="mt-6">
-                <button
-                  onClick={handleApplyClick}
-                  className="w-full bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 font-semibold"
-                >
-                  Ứng tuyển ngay
-                </button>
-              </div>
-            </div>
-
-            {/* Job Description */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Mô tả công việc</h2>
-              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: job.description }}></div>
             </div>
 
             {/* Job Requirements */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Yêu cầu công việc</h2>
-              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: job.requirements }}></div>
+            <div className="bg-white rounded-2xl shadow p-8 mb-8 border border-primary/10">
+              <h2 className="text-xl font-bold mb-4 text-primary">Yêu cầu công việc</h2>
+              {job.experience && (
+                <div className="mb-2 text-base text-gray-700">
+                  <span className="font-semibold">Kinh nghiệm:</span> {job.experience}
+                </div>
+              )}
+              <div className="prose max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: job.requirements }}></div>
             </div>
 
             {/* Job Benefits */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Quyền lợi</h2>
-              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: job.benefits }}></div>
+            <div className="bg-white rounded-2xl shadow p-8 mb-8 border border-primary/10">
+              <h2 className="text-xl font-bold mb-4 text-primary">Quyền lợi</h2>
+              {job.salaryRange && (
+                <div className="mb-2 text-base text-gray-700">
+                  <span className="font-semibold">Mức lương:</span> {job.salaryRange}
+                </div>
+              )}
+              <div className="prose max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: job.benefits }}></div>
+            </div>
+
+            {/* Job Description */}
+            <div className="bg-white rounded-2xl shadow p-8 mb-8 border border-primary/10">
+              <h2 className="text-xl font-bold mb-4 text-primary">Mô tả công việc</h2>
+              <div className="prose max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: job.description }}></div>
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            {/* Company Info */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Thông tin công ty</h2>
-              <div className="flex items-center mb-4">
-                <img
-                  src={job.recruiter?.company?.logoUrl || "https://via.placeholder.com/50"}
-                  alt={job.recruiter?.companyName || "Company Logo"}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-                <div className="ml-4">
-                  <h3 className="font-semibold">{job.recruiter?.companyName}</h3>
-                  <p className="text-gray-600">{job.recruiter?.company?.industry}</p>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-primary/10">
+              <h2 className="text-xl font-bold mb-4 text-primary">Thông tin công ty</h2>
+              {job.recruiter?.companyProfile ? (
+                <>
+                  <div className="flex items-center mb-4">
+                    <img
+                      src={job.recruiter.companyProfile.logoUrl || "https://via.placeholder.com/50"}
+                      alt={job.recruiter.companyProfile.name || "Company Logo"}
+                      className="w-14 h-14 rounded-lg object-cover border border-primary/20 shadow"
+                    />
+                    <div className="ml-4">
+                      <h3 className="font-semibold text-lg text-dark">{job.recruiter.companyProfile.name}</h3>
+                      {job.recruiter.companyProfile.industry && <p className="text-gray-600 text-sm">Ngành: {job.recruiter.companyProfile.industry}</p>}
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-gray-600 text-sm">
+                    {job.recruiter.companyProfile.location && (
+                      <div><span className="font-semibold">Địa chỉ:</span> {job.recruiter.companyProfile.location}</div>
+                    )}
+                    {job.recruiter.companyProfile.website && (
+                      <div><span className="font-semibold">Website:</span> <a href={job.recruiter.companyProfile.website} className="text-primary underline" target="_blank" rel="noopener noreferrer">{job.recruiter.companyProfile.website}</a></div>
+                    )}
+                    {job.recruiter.companyProfile.description && (
+                      <div><span className="font-semibold">Mô tả:</span> {job.recruiter.companyProfile.description}</div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2 text-gray-600 text-sm">
+                  <div><span className="font-semibold">Nhà tuyển dụng:</span> {job.recruiter?.fullname}</div>
+                  <div><span className="font-semibold">Email:</span> {job.recruiter?.email}</div>
+                  {job.recruiter?.phone && <div><span className="font-semibold">SĐT:</span> {job.recruiter.phone}</div>}
                 </div>
-              </div>
-              <div className="space-y-2 text-gray-600">
-                {job.recruiter?.company?.numberOfEmployees && (
-                  <p className="flex items-center">
-                    <span>{job.recruiter.company.numberOfEmployees} nhân viên</span>
-                  </p>
-                )}
-                <p className="flex items-center">
-                  <span>Địa điểm: {job.recruiter?.company?.address || job.recruiter?.location}</span>
-                </p>
-              </div>
-              {job.recruiter?.company?.id && (
-                <Link
-                  to={`/companies/${job.recruiter.company.id}`}
-                  className="block text-center text-primary hover:text-primary/80 mt-4"
-                >
-                  Xem trang công ty →
-                </Link>
               )}
             </div>
 
             {/* Similar Jobs */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Việc làm tương tự</h2>
-              {isLoadingSimilar ? (
-                <div className="animate-pulse space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              ) : isErrorSimilar ? (
-                <div className="text-center text-red-500 text-sm">Không thể tải danh sách việc làm tương tự.</div>
-              ) : similarJobs?.length > 0 ? (
-                <div className="space-y-4">
-                  {similarJobs.map((similarJob) => (
-                    <div key={similarJob.id} className="border-b pb-4 last:border-b-0">
-                      <Link to={`/jobs/${similarJob.id}`} className="block hover:bg-gray-50 p-2 rounded">
-                        <h3 className="font-semibold text-gray-900">{similarJob.title}</h3>
-                        <p className="text-gray-600 text-sm">{similarJob.recruiter?.companyName}</p>
-                        <div className="flex items-center text-gray-500 mt-2">
-                          <span className="text-sm">{similarJob.location}</span>
-                          <span className="mx-2">•</span>
-                          <span className="text-sm">{similarJob.salaryRange}</span>
-                        </div>
+            {similarJobs && similarJobs.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-primary/10">
+                <h2 className="text-xl font-bold mb-4 text-primary">Việc làm tương tự</h2>
+                <ul className="space-y-3">
+                  {similarJobs.map(similar => (
+                    <li key={similar.id} className="border-b last:border-b-0 pb-2">
+                      <Link to={`/jobs/${similar.id}`} className="font-semibold text-dark hover:text-primary transition">
+                        {similar.title}
                       </Link>
-                    </div>
+                      <div className="text-xs text-gray-500">{similar.companyName || similar.recruiter?.companyName || '-'}</div>
+                    </li>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 text-sm">Không có việc làm tương tự.</div>
-              )}
-            </div>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -484,5 +468,13 @@ const JobDetails = () => {
     </div>
   );
 };
+
+// Helper: parse ISO date string safely (support createdAt, createAt, postedAt)
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('vi-VN');
+}
 
 export default JobDetails;

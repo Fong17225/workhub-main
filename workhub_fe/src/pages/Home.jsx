@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import ServicePackageList from '../components/ServicePackageList';
+import FeaturedJobList from '../components/FeaturedJobList';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -55,44 +56,37 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Tìm việc làm mơ ước của bạn
-            </h1>
-            <p className="text-xl mb-8">
-              Hàng nghìn cơ hội việc làm đang chờ đón bạn
-            </p>
-            <div className="max-w-2xl mx-auto">
-              <div className="flex items-center bg-white rounded-lg p-2">
-                <Search className="text-gray-400 ml-2" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm việc làm, kỹ năng, công ty..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleSearch}
-                  className="flex-1 px-4 py-2 focus:outline-none text-gray-900"
-                />
-                <button 
-                  onClick={handleSearch}
-                  className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90"
-                >
-                  Tìm kiếm
-                </button>
-              </div>
-            </div>
+      <section className="bg-gradient-to-r from-primary to-accent text-white py-24">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col items-center text-center">
+          <h1 className="text-4xl md:text-6xl  font-heading leading-tight tracking-tight drop-shadow-lg">
+            <span className="block">Tìm việc làm mơ ước của bạn</span>
+            <span className="block mt-2">với <span className="text-accent font-black">WorkHub</span></span>
+          </h1>
+          <p className="text-lg md:text-2xl text-white/90 mb-10 font-medium drop-shadow">
+            Nền tảng tuyển dụng hiện đại, kết nối ứng viên và nhà tuyển dụng hàng đầu Việt Nam.
+          </p>
+          <div className="flex w-full max-w-xl mx-auto bg-white rounded-full shadow-card p-2 gap-2">
+            <input
+              type="text"
+              className="flex-1 px-6 py-3 rounded-full focus:outline-none text-dark text-lg font-sans"
+              placeholder="Nhập vị trí, công ty..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
+            />
+            <button
+              className="bg-accent text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-primary transition"
+              onClick={handleSearch}
+            >Tìm kiếm</button>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16  bg-white-50 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ServicePackageList user={user} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <Work className="text-primary text-4xl mb-4" />
@@ -118,117 +112,19 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Featured Jobs Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold mb-8">Việc làm nổi bật</h2>
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white p-6 rounded-lg shadow-md animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredJobs?.map((job) => (
-                <div key={job.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        <Link to={`/jobs/${job.id}`} className="hover:text-primary">
-                          {job.title}
-                        </Link>
-                      </h3>
-                      {/* <div className="mt-2 flex items-center text-sm text-gray-500">
-                        <BuildingOfficeIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        {job.recruiter?.companyName}
-                      </div> */}
-                    </div>
-                    {/* Check if job.postAt is 'urgent' and display badge */}
-                    {job.postAt === 'urgent' && (
-                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Khẩn cấp
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <MapPinIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {job.location}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <CurrencyDollarIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {job.salaryRange}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <ClockIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      {job.type?.name}
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="flex items-center text-sm text-gray-500 mb-2">
-                      <TagIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      <span className="font-medium">Ngành nghề:</span>
-                      <span className="ml-2">{job.category?.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <CalendarIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      <div>
-                        <div>Đăng: {new Date(job.createdAt).toLocaleDateString('vi-VN')}</div>
-                        {job.deadline && (
-                          <div>Hạn nộp: {new Date(job.deadline).toLocaleDateString('vi-VN')}</div>
-                        )}
-                      </div>
-                    </div>
-                    <Link
-                      to={`/jobs/${job.id}`}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    >
-                      Xem chi tiết
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="text-center mt-8">
-            <Link
-              to="/jobs"
-              className="inline-block bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90"
-            >
-              Xem tất cả việc làm
-            </Link>
-          </div>
+<section className="py-16 bg-white border-t border-border">
+        <div className="max-w-6xl mx-auto px-4">
+          
+          <FeaturedJobList jobs={featuredJobs} isLoading={isLoading} />
         </div>
       </section>
+      
 
-      {/* Call to Action */}
-      <section className="bg-primary text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Sẵn sàng tìm việc làm mơ ước?
-          </h2>
-          <p className="text-xl mb-8">
-            Tạo tài khoản ngay hôm nay và bắt đầu hành trình tìm kiếm việc làm
-          </p>
-          <Link
-            to="/register"
-            className="inline-block bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
-          >
-            Đăng ký miễn phí
-          </Link>
+      {/* Service Packages Section */}
+      <section className="py-16 bg-white border-t border-border">
+        <div className="max-w-6xl mx-auto px-4">
+          
+          <ServicePackageList />
         </div>
       </section>
     </div>

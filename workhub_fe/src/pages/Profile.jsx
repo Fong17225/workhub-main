@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Edit,
@@ -18,29 +18,53 @@ import PersonIcon from '@mui/icons-material/Person';
 import ArticleIcon from '@mui/icons-material/Article';
 import Dashboard from './Dashboard';
 import { 
-  getSavedJobs, getAppliedJobs, getUserResumes, saveJob, unsaveJob, createResume, deleteResume, getResumeFileBase64 
+  getSavedJobs, getAppliedJobs, getUserResumes, saveJob, unsaveJob, createResume, deleteResume, getResumeFileBase64, getCurrentUser, getUserById, getCompanyById, getCompanyByRecruiter
 } from '../apiService';
+import axios from 'axios';
 
-const parseJwt = (token) => {
-  if (!token) return null;
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch {
-    return null;
-  }
-};
+const API_BASE_URL = 'http://localhost:8080/workhub/api/v1';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [newResumeTitle, setNewResumeTitle] = useState('');
   const [newResumeContent, setNewResumeContent] = useState('');
   const [newResumeFile, setNewResumeFile] = useState(null);
   const [selectedSkillIds, setSelectedSkillIds] = useState([]);
+  const [removingJobId, setRemovingJobId] = useState(null);
+  const [localSavedJobs, setLocalSavedJobs] = useState([]);
+  const [company, setCompany] = useState(null);
 
-  // Lấy user info từ token
+  // Lấy id user hiện tại từ token (nếu có)
+  let currentUserId = null;
   const token = localStorage.getItem('token');
-  const user = parseJwt(token);
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      currentUserId = payload.id;
+    } catch {}
+  }
+
+  // Nếu có id trên URL nhưng khác id user hiện tại (và không phải admin), điều hướng về đúng profile của mình
+  useEffect(() => {
+    if (id && id !== String(currentUserId)) {
+      navigate(`/profile/${currentUserId}`);
+    }
+  }, [id, currentUserId, navigate]);
+
+  // Lấy user info từ API /users/me (chỉ lấy của chính mình)
+  const { data: user, isLoading: isLoadingUser, error: userError } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await getCurrentUser({
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Query để lấy danh sách công việc đã lưu (API mới: /saved-jobs, không truyền userId, backend lấy từ JWT)
   const { data: savedJobs, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery({
@@ -106,14 +130,21 @@ const Profile = () => {
       const response = await unsaveJob(jobId, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      return response.data;
+      return response; // Trả về toàn bộ response, không phải response.data
     },
-    onSuccess: () => {
-      refetchSavedJobs();
+    onSuccess: (response, jobId) => {
+      setLocalSavedJobs(prev => prev.filter(saved => (saved.job?.id || saved.id) !== jobId));
       alert('Đã bỏ lưu công việc!');
     },
-    onError: (error) => {
-      alert('Bỏ lưu công việc thất bại!');
+    onError: (error, jobId) => {
+      const status = error?.response?.status;
+      if (status === 204 || status === 200) {
+        setLocalSavedJobs(prev => prev.filter(saved => (saved.job?.id || saved.id) !== jobId));
+        alert('Đã bỏ lưu công việc!');
+      } else {
+        refetchSavedJobs();
+        alert('Bỏ lưu công việc thất bại!');
+      }
     },
   });
 
@@ -161,19 +192,53 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    if (!user) {
+    if (userError && (userError.response?.status === 401 || userError.response?.status === 403)) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [userError, navigate]);
 
-  if (!user) {
-    return null;
+  useEffect(() => {
+    if (savedJobs) setLocalSavedJobs(savedJobs);
+  }, [savedJobs]);
+
+  // Lấy thông tin công ty nếu là recruiter và chưa có companyProfile
+  useEffect(() => {
+    async function fetchCompany() {
+      if (user && user.role === 'recruiter') {
+        try {
+          if (user.companyProfile) {
+            setCompany(user.companyProfile);
+            console.log('Company from user:', user.companyProfile);
+          } else {
+            const res = await getCompanyByRecruiter(user.id);
+            setCompany(res.data);
+            console.log('Company from API:', res.data);
+          }
+        } catch (e) {
+          setCompany(null);
+          console.log('Company fetch error:', e);
+        }
+      }
+    }
+    fetchCompany();
+  }, [user]);
+
+  if (isLoadingUser) return <div>Đang tải thông tin người dùng...</div>;
+  if (!user || !user.id) {
+    return (
+      <div>
+        Không tìm thấy thông tin người dùng hoặc user không hợp lệ.<br/>
+        {userError && (
+          <pre style={{color: 'red', marginTop: 8}}>
+            {userError.message || JSON.stringify(userError)}
+          </pre>
+        )}
+      </div>
+    );
   }
 
-  // Nếu là recruiter thì hiển thị dashboard trong profile
-  if (user.role === 'recruiter') {
-    return <Dashboard />;
-  }
+  // Nếu là recruiter thì chỉ hiển thị 2 tab: Thông tin cá nhân và Thông tin công ty
+  const isRecruiter = user.role === 'recruiter';
 
   // Hàm để hiển thị trạng thái ứng tuyển với màu sắc tương ứng
   const getStatusBadge = (status) => {
@@ -271,408 +336,239 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center space-x-6">
-            <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center">
-              <PersonIcon className="h-16 w-16 text-gray-400" />
+        <div className="bg-white rounded-2xl shadow-2xl p-8 mb-10 flex flex-col md:flex-row items-center gap-8">
+          <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-primary shadow-lg">
+            <PersonIcon className="h-20 w-20 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-3xl font-extrabold text-primary font-heading mb-2">{(user.fullname && user.fullname !== user.email) ? user.fullname : (user.name && user.name !== user.email) ? user.name : (user.username && user.username !== user.email) ? user.username : ''}</h1>
+            <div className="flex flex-wrap gap-4 items-center text-muted mb-2">
+              <span className="flex items-center gap-1"><Email className="w-5 h-5" />{user.email || user.sub}</span>
+              <span className="flex items-center gap-1"><Work className="w-5 h-5" />{user.role}</span>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{user.sub}</h1>
-              
-            </div>
+            {/* Thêm các trường khác nếu có */}
+            {user.phone && <div className="flex items-center gap-1 text-muted"><Phone className="w-5 h-5" />{user.phone}</div>}
+            {user.address && <div className="flex items-center gap-1 text-muted"><LocationOn className="w-5 h-5" />{user.address}</div>}
+            {user.linkedin && <div className="flex items-center gap-1 text-muted"><LinkedIn className="w-5 h-5" />{user.linkedin}</div>}
+            {user.github && <div className="flex items-center gap-1 text-muted"><GitHub className="w-5 h-5" />{user.github}</div>}
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow">
-              <nav className="p-4">
+            <div className="bg-white rounded-2xl shadow p-4 sticky top-24">
+              <nav className="flex flex-col gap-2">
                 <button
                   onClick={() => setActiveTab('profile')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    activeTab === 'profile'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'profile' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
                 >
-                  <PersonIcon />
-                  <span>Hồ sơ</span>
+                  <PersonIcon /> Thông tin cá nhân
                 </button>
-                <button
-                  onClick={() => setActiveTab('saved')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    activeTab === 'saved'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Bookmark />
-                  <span>Việc làm đã lưu ({isLoadingSaved ? '...' : savedJobs?.length || 0})</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('resumes')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    activeTab === 'resumes'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <ArticleIcon />
-                  <span>Quản lý CV ({isLoadingResumes ? '...' : resumes?.length || 0})</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    activeTab === 'history'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <History />
-                  <span>Lịch sử ứng tuyển ({isLoadingApplied ? '...' : appliedJobs?.length || 0})</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    activeTab === 'settings'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Settings />
-                  <span>Cài đặt</span>
-                </button>
+                {isRecruiter && (
+                  <button
+                    onClick={() => setActiveTab('company')}
+                    className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'company' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                  >
+                    <Work /> Thông tin công ty
+                  </button>
+                )}
+                {!isRecruiter && (
+                  <>
+                    <button
+                      onClick={() => setActiveTab('resume')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'resume' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                    >
+                      <ArticleIcon /> Quản lý CV
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('saved')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'saved' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                    >
+                      <Bookmark /> Việc đã lưu
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('applied')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'applied' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                    >
+                      <History /> Việc đã ứng tuyển
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('notification')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'notification' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                    >
+                      <Settings /> Thông báo
+                    </button>
+                  </>
+                )}
               </nav>
             </div>
           </div>
-
           {/* Main Content */}
           <div className="md:col-span-3">
             {activeTab === 'profile' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-6">Thông tin cá nhân</h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Thông tin cơ bản</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Họ và tên</label>
-                        <p className="mt-1 text-gray-900">{user.fullName}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <p className="mt-1 text-gray-900">{user.email}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                        <p className="mt-1 text-gray-900">{user.phone}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Địa chỉ</label>
-                        <p className="mt-1 text-gray-900">{user.address}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Kỹ năng</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {user.skills?.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Học vấn</h3>
-                    <div className="space-y-4">
-                      {user.education?.map((edu, index) => (
-                        <div key={index} className="flex items-start space-x-4">
-                          <School />
-                          <div>
-                            <h4 className="font-medium">{edu.school}</h4>
-                            <p className="text-gray-600">{edu.degree}</p>
-                            <p className="text-sm text-gray-500">
-                              {edu.startDate} - {edu.endDate}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Kinh nghiệm làm việc</h3>
-                    <div className="space-y-4">
-                      {user.experience?.map((exp, index) => (
-                        <div key={index} className="flex items-start space-x-4">
-                          <Work />
-                          <div>
-                            <h4 className="font-medium">{exp.company}</h4>
-                            <p className="text-gray-600">{exp.position}</p>
-                            <p className="text-sm text-gray-500">
-                              {exp.startDate} - {exp.endDate}
-                            </p>
-                            <p className="mt-2 text-gray-700">{exp.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Liên kết</h3>
-                    <div className="space-y-2">
-                      {user.socialLinks?.map((link, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {link.platform}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Thông tin cá nhân</h2>
+                <div className="space-y-2 text-lg">
+                  <div><span className="font-semibold">Họ tên:</span> {(user.fullname && user.fullname !== user.email) ? user.fullname : (user.name && user.name !== user.email) ? user.name : (user.username && user.username !== user.email) ? user.username : ''}</div>
+                  <div><span className="font-semibold">Email:</span> {user.email || user.username || user.sub || '-'}</div>
+                  <div><span className="font-semibold">Vai trò:</span> {user.role}</div>
+                  {user.phone && <div><span className="font-semibold">Số điện thoại:</span> {user.phone}</div>}
+                  {user.address && <div><span className="font-semibold">Địa chỉ:</span> {user.address}</div>}
+                  {user.linkedin && <div><span className="font-semibold">LinkedIn:</span> {user.linkedin}</div>}
+                  {user.github && <div><span className="font-semibold">GitHub:</span> {user.github}</div>}
                 </div>
               </div>
             )}
-
-            {activeTab === 'saved' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-6">Việc làm đã lưu</h2>
-                {isLoadingSaved ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                    ))}
-                  </div>
-                ) : isErrorSaved ? (
-                  <div className="text-center text-red-500 text-sm">Không thể tải danh sách việc làm đã lưu.</div>
-                ) : savedJobs?.length > 0 ? (
-                  <div className="space-y-4">
-                    {savedJobs.map((savedJob) => (
-                      <div key={savedJob.id || savedJob.job?.id} className="border-b pb-4 last:border-b-0">
-                        <h3 className="font-semibold">
-                          <Link to={`/jobs/${savedJob.job?.id}`} className="hover:text-primary">
-                            {savedJob.job?.title || '[Tiêu đề trống]'}
-                          </Link>
-                        </h3>
-                        <p className="text-gray-600 text-sm">{savedJob.job?.recruiter?.companyName || '[Công ty ẩn danh]'}</p>
-                        <div className="flex items-center text-gray-500 mt-2">
-                          <LocationOn className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                          <span>Địa điểm: {savedJob.job?.location || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center text-gray-500 mt-2">
-                          <span>Mức lương: {savedJob.job?.salaryRange || 'Thương lượng'}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500 mt-2">
-                          <span>Đã lưu vào: {new Date(savedJob.savedAt).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      </div>
-                    ))}
+            {isRecruiter && activeTab === 'company' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Thông tin công ty</h2>
+                {company ? (
+                  <div className="space-y-2 text-lg">
+                    <div><span className="font-semibold">Tên công ty:</span> {company.name}</div>
+                    <div><span className="font-semibold">Email công ty:</span> {company.email}</div>
+                    <div><span className="font-semibold">Địa chỉ:</span> {company.location}</div>
+                    <div><span className="font-semibold">Ngành nghề:</span> {company.industry}</div>
+                    <div><span className="font-semibold">Website:</span> <a href={company.website} className="text-primary underline" target="_blank" rel="noopener noreferrer">{company.website}</a></div>
+                    <div><span className="font-semibold">Mô tả:</span> {company.description}</div>
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm">Bạn chưa lưu việc làm nào.</div>
+                  <div className="text-gray-500">Chưa có thông tin công ty.</div>
                 )}
               </div>
             )}
-
-            {activeTab === 'resumes' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-6">Quản lý CV</h2>
+            {!isRecruiter && activeTab === 'resume' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Quản lý CV</h2>
                 {isLoadingResumes ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                    ))}
-                  </div>
-                ) : resumes?.length > 0 ? (
+                  <div>Đang tải CV...</div>
+                ) : resumes && resumes.length ? (
                   <div className="space-y-4">
                     {resumes.map(resume => (
-                      <div key={resume.id} className="border-b pb-4 last:border-b-0">
-                        <h3 className="font-semibold">{resume.title}</h3>
-                        <p className="text-gray-600 text-sm mt-1">{resume.content}</p>
-                        <p className="text-sm text-gray-500 mt-2">Tải lên vào: {new Date(resume.createdAt).toLocaleDateString('vi-VN')}</p>
-                        <div className="mt-4 flex space-x-4">
-                          <button
-                            onClick={() => handleDownloadResume(resume.id, resume.title)}
-                            className="text-primary hover:underline text-sm"
-                          >
-                            Tải về
-                          </button>
-                          <button
-                            onClick={() => handleDeleteResume(resume.id)}
-                            className="text-red-600 hover:underline text-sm"
-                          >
-                            Xóa
-                          </button>
-                          <button
-                            onClick={() => handleViewResume(resume.id, resume.title)}
-                            className="text-primary hover:underline text-sm"
-                          >
-                            Xem CV
-                          </button>
+                      <div key={resume.id || resume._id || Math.random()} className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg text-dark">{resume.title}</div>
+                          <div className="text-muted text-sm mb-2">{resume.content}</div>
+                          <div className="text-xs text-gray-400">Tải lên: {resume.createdAt ? new Date(resume.createdAt).toLocaleString() : ''}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="px-4 py-2 rounded bg-primary text-white font-semibold hover:bg-accent transition" onClick={() => handleViewResume(resume.id, resume.title)}>Xem</button>
+                          <button className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 transition" onClick={() => handleDownloadResume(resume.id, resume.title)}>Tải về</button>
+                          <button className="px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition" onClick={() => handleDeleteResume(resume.id)}>Xóa</button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm">Bạn chưa có CV nào. Hãy tải lên CV đầu tiên của bạn!</div>
+                  <div>Chưa có CV nào.</div>
                 )}
-
-                {/* Form to upload new CV */}
-                <div className="mt-8 border-t pt-8">
-                  <h3 className="text-lg font-semibold mb-4">Tải lên CV mới</h3>
-                  <form onSubmit={handleResumeUpload} className="space-y-4">
-                    <div>
-                      <label htmlFor="resumeTitle" className="block text-sm font-medium text-gray-700">Tiêu đề CV</label>
-                      <input
-                        type="text"
-                        id="resumeTitle"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-primary focus:border-primary"
-                        value={newResumeTitle}
-                        onChange={(e) => setNewResumeTitle(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="resumeContent" className="block text-sm font-medium text-gray-700">Mô tả (Tùy chọn)</label>
-                      <textarea
-                        id="resumeContent"
-                        rows="3"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-primary focus:border-primary"
-                        value={newResumeContent}
-                        onChange={(e) => setNewResumeContent(e.target.value)}
-                      ></textarea>
-                    </div>
-                    <div>
-                      <label htmlFor="resumeFile" className="block text-sm font-medium text-gray-700">Chọn File CV (PDF, DOC, DOCX)</label>
-                      <input
-                        type="file"
-                        id="resumeFile"
-                        accept=".pdf,.doc,.docx"
-                        className="mt-1 block w-full text-sm text-gray-500
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-full file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-primary/10 file:text-primary
-                          hover:file:bg-primary/20"
-                        onChange={(e) => setNewResumeFile(e.target.files[0])}
-                        required
-                      />
-                    </div>
-                    {/* Skill selection will be added here later */}
-                    <button
-                      type="submit"
-                      className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                      disabled={createResumeMutation.isLoading}
-                    >
-                      {createResumeMutation.isLoading ? 'Đang tải lên...' : 'Tải lên CV'}
-                    </button>
-                  </form>
-                </div>
+                {/* Form upload CV */}
+                <form className="mt-8 space-y-4" onSubmit={handleResumeUpload}>
+                  <div>
+                    <label className="block font-semibold mb-1">Tiêu đề CV</label>
+                    <input type="text" className="w-full px-4 py-2 border rounded" value={newResumeTitle} onChange={e => setNewResumeTitle(e.target.value)} placeholder="Nhập tiêu đề CV..." />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Mô tả</label>
+                    <textarea className="w-full px-4 py-2 border rounded" value={newResumeContent} onChange={e => setNewResumeContent(e.target.value)} placeholder="Mô tả ngắn về CV..."></textarea>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">File CV (PDF)</label>
+                    <input type="file" accept="application/pdf" onChange={e => setNewResumeFile(e.target.files[0])} />
+                  </div>
+                  <button type="submit" className="px-6 py-2 rounded-full bg-primary text-white font-bold hover:bg-accent transition">Tải lên CV mới</button>
+                </form>
               </div>
             )}
-
-            {activeTab === 'history' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-6">Lịch sử ứng tuyển</h2>
-                {isLoadingApplied ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                    ))}
-                  </div>
-                ) : appliedJobs?.length > 0 ? (
+            {!isRecruiter && activeTab === 'saved' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Việc đã lưu</h2>
+                {isLoadingSaved ? (
+                  <div>Đang tải...</div>
+                ) : localSavedJobs && localSavedJobs.length ? (
                   <div className="space-y-4">
-                    {appliedJobs.map((application) => (
-                      <div key={application.applicationId} className="border-b pb-4 last:border-b-0">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold">
-                              <Link to={`/jobs/${application.job?.id}`} className="hover:text-primary">
-                                {application.job?.title || '[Tiêu đề trống]'}
-                              </Link>
-                            </h3>
-                            <p className="text-gray-600 text-sm">{application.job?.recruiter?.companyName || '[Công ty ẩn danh]'}</p>
-                            <div className="flex items-center text-gray-500 mt-2">
-                              <LocationOn className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <span>Địa điểm: {application.job?.location || 'N/A'}</span>
-                            </div>
-                            <div className="flex items-center text-gray-500 mt-2">
-                              <span>Mức lương: {application.job?.salaryRange || 'Thương lượng'}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            {getStatusBadge(application.status)}
-                            <p className="text-sm text-gray-500 mt-2">
-                              Nộp vào: {new Date(application.appliedAt).toLocaleDateString('vi-VN')}
-                            </p>
-                          </div>
+                    {localSavedJobs.map(saved => (
+                      <div key={saved.id || saved.job?.id || Math.random()} className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1">
+                          <Link to={saved.job?.id ? `/jobs/${saved.job.id}` : '#'} className="font-semibold text-lg text-dark hover:text-primary transition">
+                            {saved.job?.title || '-'}
+                          </Link>
+                          <div className="text-muted text-sm mb-1">{saved.job?.companyName || saved.job?.recruiter?.fullname || '-'}</div>
+                          <div className="text-xs text-gray-400 mb-1">Địa điểm: {saved.job?.location || '-'}</div>
+                          {saved.job?.salaryRange && <div className="text-xs text-gray-400 mb-1">Mức lương: {saved.job.salaryRange}</div>}
+                          {saved.job?.category?.name && <div className="text-xs text-gray-400 mb-1">Ngành nghề: {saved.job.category.name}</div>}
+                          {saved.job?.type?.name && <div className="text-xs text-gray-400 mb-1">Loại hình: {saved.job.type.name}</div>}
+                          {saved.job?.position?.name && <div className="text-xs text-gray-400 mb-1">Vị trí: {saved.job.position.name}</div>}
+                          {saved.job?.deadline && <div className="text-xs text-gray-400 mb-1">Hạn nộp: {new Date(saved.job.deadline).toLocaleDateString('vi-VN')}</div>}
+                          {saved.savedAt && <div className="text-xs text-gray-400 mb-1">Đã lưu: {new Date(saved.savedAt).toLocaleString()}</div>}
                         </div>
-                        <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-700">CV đã nộp:</h4>
-                          <p className="text-sm text-gray-600 mt-1">{application.resumeTitle}</p>
-                        </div>
-                        <div className="mt-2">
-                          <h4 className="text-sm font-medium text-gray-700">Giờ phỏng vấn:</h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {application.interviewTime ? new Date(application.interviewTime).toLocaleString('vi-VN') : 'Chưa chọn'}
-                          </p>
-                        </div>
+                        <button
+                          className="px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+                          onClick={() => {
+                            if (window.confirm('Bạn có chắc chắn muốn bỏ lưu công việc này?')) {
+                              setRemovingJobId(saved.job?.id || saved.id);
+                              unsaveJobMutation.mutate(saved.job?.id || saved.id, {
+                                onSettled: () => setRemovingJobId(null)
+                              });
+                            }
+                          }}
+                          disabled={removingJobId === (saved.job?.id || saved.id)}
+                        >
+                          {removingJobId === (saved.job?.id || saved.id) ? 'Đang bỏ lưu...' : 'Bỏ lưu'}
+                        </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm">Bạn chưa ứng tuyển việc làm nào.</div>
+                  <div>Chưa có việc làm nào được lưu.</div>
                 )}
               </div>
             )}
-
-            {activeTab === 'settings' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-6">Cài đặt</h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Thông báo</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Email thông báo</p>
-                          <p className="text-sm text-gray-500">
-                            Nhận thông báo qua email về việc làm mới
-                          </p>
+            {!isRecruiter && activeTab === 'applied' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Việc đã ứng tuyển</h2>
+                {isLoadingApplied ? (
+                  <div>Đang tải...</div>
+                ) : appliedJobs && appliedJobs.length ? (
+                  <div className="space-y-4">
+                    {appliedJobs.map(app => (
+                      <div key={app.applicationId || app.id || Math.random()} className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg text-dark">{app.job?.title || '-'}</div>
+                          <div className="text-muted text-sm mb-1">{app.job?.companyName || '-'}</div>
+                          <div className="text-xs text-gray-400 mb-1">Địa điểm: {app.job?.location || '-'}</div>
+                          {app.job?.salaryRange && <div className="text-xs text-gray-400 mb-1">Mức lương: {app.salaryRange}</div>}
+                          {/* Trạng thái đơn ứng tuyển */}
+                          <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-1 ${
+                            app.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                            app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {app.status === 'pending' && 'Đang chờ duyệt'}
+                            {app.status === 'accepted' && 'Đã được nhận'}
+                            {app.status === 'rejected' && 'Đã bị từ chối'}
+                            {!['pending','accepted','rejected'].includes(app.status) && app.status}
+                          </div>
+                          <div className="text-xs text-gray-400 mb-1">Nộp lúc: {app.appliedAt ? new Date(app.appliedAt).toLocaleString() : '-'}</div>
+                          {app.resumeTitle && <div className="text-xs text-gray-400 mb-1">CV: {app.resumeTitle}</div>}
+                          {app.interviewTime && <div className="text-xs text-gray-400 mb-1">Lịch PV: {new Date(app.interviewTime).toLocaleString()}</div>}
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
+                        {/* Có thể thêm nút/tính năng khác ở đây */}
                       </div>
-                    </div>
+                    ))}
                   </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Bảo mật</h3>
-                    <div className="space-y-4">
-                      <button className="text-red-600 hover:text-red-700">
-                        Xóa tài khoản
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  <div>Bạn chưa ứng tuyển công việc nào.</div>
+                )}
+              </div>
+            )}
+            {!isRecruiter && activeTab === 'notification' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Thông báo</h2>
+                <NotificationList userId={user.id} />
               </div>
             )}
           </div>

@@ -15,10 +15,14 @@ import org.springframework.http.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class InterviewSlotService {
+    private static final Logger logger = LoggerFactory.getLogger(InterviewSlotService.class);
+
     private final InterviewSlotRepository slotRepo;
 
     private final JobRepository jobRepo;
@@ -31,6 +35,7 @@ public class InterviewSlotService {
 
 
     public InterviewSlot createSlot(String sessionId, String candidateId, String jobId) {
+        logger.info("[createSlot] INPUT: sessionId={}, candidateId={}, jobId={}", sessionId, candidateId, jobId);
         InterviewSession session = sessionRepo.findById(UUID.fromString(sessionId))
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
         Job job = jobRepo.findById(Integer.parseInt(jobId))
@@ -44,20 +49,31 @@ public class InterviewSlotService {
 
         User candidate = null;
         if (candidateId != null && !candidateId.isEmpty()) {
+            logger.info("[createSlot] Checking if candidate {} applied for job {}", candidateId, jobId);
             boolean applied = applicationRepo.existsByJobIdAndCandidateId(
                     Integer.parseInt(jobId), Integer.parseInt(candidateId));
+            logger.info("[createSlot] Candidate {} applied for job {}: {}", candidateId, jobId, applied);
             if (!applied) {
+                logger.warn("[createSlot] Candidate {} did not apply for job {}", candidateId, jobId);
                 throw new IllegalArgumentException("Candidate did not apply for this job");
             }
             candidate = userRepo.findById(Integer.parseInt(candidateId))
                     .orElseThrow(() -> new IllegalArgumentException("Candidate not found"));
+            logger.info("[createSlot] Candidate found: {} (email: {})", candidate.getFullname(), candidate.getEmail());
             slot.setCandidate(candidate);
+        } else {
+            logger.warn("[createSlot] candidateId is null or empty, will not set candidate for slot");
         }
 
         slot = slotRepo.save(slot);
 
-        // Use tokenCandidate for the join link
-        String joinLink = "http://localhost:8080/workhub/api/v1/interview-sessions/join/" + session.getTokenCandidate();
+        // Reload session to get latest codeCandidate
+        session = sessionRepo.findById(session.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Session not found"));
+        String codeCandidate = session.getCodeCandidate();
+        String joinLink = codeCandidate != null && !codeCandidate.isEmpty()
+            ? "https://workhub.app.100ms.live/preview/" + codeCandidate
+            : "#";
 
         String body = "<!DOCTYPE html>" +
                 "<html>" +
@@ -84,7 +100,15 @@ public class InterviewSlotService {
                 "</html>";
 
         if (candidate != null) {
-            emailService.sendinterview(candidate.getEmail(), "Interview Schedule", body);
+            logger.info("[DEBUG] Sending interview email to candidate: {} | email: {} | joinLink: {} | codeCandidate: {}", candidate.getFullname(), candidate.getEmail(), joinLink, codeCandidate);
+            try {
+                emailService.sendinterview(candidate.getEmail(), "Interview Schedule", body);
+                logger.info("Interview email sent to candidate: {} (email: {})", candidate.getFullname(), candidate.getEmail());
+            } catch (Exception e) {
+                logger.error("Failed to send interview email to candidate: {} (email: {}), error: {}", candidate.getFullname(), candidate.getEmail(), e.getMessage());
+            }
+        } else {
+            logger.warn("No candidate found to send interview email.");
         }
 
         return slot;
@@ -115,5 +139,10 @@ public class InterviewSlotService {
         slot.setCreatedAt(java.time.LocalDateTime.now());
         // Nếu có endTime thì có thể lưu vào một trường khác nếu entity có
         return slotRepo.save(slot);
+    }
+
+    // Xóa slot phỏng vấn theo id
+    public void deleteSlot(UUID slotId) {
+        slotRepo.deleteById(slotId);
     }
 }

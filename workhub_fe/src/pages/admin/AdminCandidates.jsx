@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, getUserById, getResumesByUser, createResumeByAdmin, deleteResume, getResumeFileBase64 } from '../../apiService';
+import { UserGroupIcon, XMarkIcon, PencilSquareIcon, TrashIcon, PlusIcon, CheckIcon, DocumentArrowDownIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function AdminCandidates() {
   const [candidates, setCandidates] = useState([]);
@@ -10,6 +11,7 @@ export default function AdminCandidates() {
   const [showResumeForm, setShowResumeForm] = useState(false);
   const [resumeTitle, setResumeTitle] = useState('');
   const [resumeFile, setResumeFile] = useState(null);
+  const [search, setSearch] = useState("");
   const token = localStorage.getItem('token');
   const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
@@ -111,85 +113,137 @@ export default function AdminCandidates() {
   };
 
   return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold mb-6 text-blue-700">Quản lý ứng viên</h2>
-      <button className="mb-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => { setShowForm(true); setSelectedCandidate(null); setFormData({ fullname: '', email: '', password: '', phone: '', role: 'candidate', status: 'verified' }); }}>Thêm ứng viên</button>
-      <table className="w-full border mb-8">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2">ID</th>
-            <th className="p-2">Tên</th>
-            <th className="p-2">Email</th>
-            <th className="p-2">Số điện thoại</th>
-            <th className="p-2">Trạng thái</th>
-            <th className="p-2">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {candidates.map(u => (
-            <tr key={u.id} className="border-t">
-              <td className="p-2">{u.id}</td>
-              <td className="p-2">{u.fullname}</td>
-              <td className="p-2">{u.email}</td>
-              <td className="p-2">{u.phone || '-'}</td>
-              <td className="p-2">{u.status}</td>
-              <td className="p-2 flex gap-2">
-                <button className="bg-primary text-white px-3 py-1 rounded text-xs" onClick={() => handleEdit(u.id)}>Sửa</button>
-                <button className="bg-red-500 text-white px-3 py-1 rounded text-xs" onClick={() => handleDelete(u.id)}>Xóa</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {/* Form thêm/sửa ứng viên */}
-      {showForm && (
-        <form className="bg-white rounded-xl shadow p-6 mb-6" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input className="border p-2 rounded" placeholder="Họ tên" value={formData.fullname} onChange={e => setFormData(f => ({ ...f, fullname: e.target.value }))} required />
-            <input className="border p-2 rounded" placeholder="Email" value={formData.email} onChange={e => setFormData(f => ({ ...f, email: e.target.value }))} required />
-            <input className="border p-2 rounded" placeholder="Số điện thoại" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} />
-            <input className="border p-2 rounded" placeholder="Mật khẩu" type="password" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} required={!selectedCandidate} />
-            <select className="border p-2 rounded" value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
-              <option value="verified">Đã xác thực</option>
-              <option value="unverified">Chưa xác thực</option>
-              <option value="suspended">Tạm ngưng</option>
-              <option value="banned">Bị cấm</option>
-            </select>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 py-10 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-extrabold text-blue-700 flex items-center gap-2">
+            <UserGroupIcon className="w-8 h-8 text-primary" /> Quản lý ứng viên
+          </h2>
+        </div>
+        <div className="flex items-center mb-4">
+          <input
+            type="text"
+            className="w-full max-w-xs px-4 py-2 border rounded shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr className="bg-blue-50">
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Họ tên</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Email</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Số điện thoại</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-700">Trạng thái</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-700">Hành động</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {candidates.filter(user =>
+                user.fullname?.toLowerCase().includes(search.toLowerCase()) ||
+                user.email?.toLowerCase().includes(search.toLowerCase()) ||
+                user.phone?.toLowerCase().includes(search.toLowerCase())
+              ).map(user => (
+                <tr key={user.id} className="hover:bg-blue-50 transition">
+                  <td className="px-4 py-2">{user.fullname}</td>
+                  <td className="px-4 py-2">{user.email}</td>
+                  <td className="px-4 py-2">{user.phone}</td>
+                  <td className="px-4 py-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{user.status}</span>
+                  </td>
+                  <td className="px-4 py-2 flex gap-2 justify-center">
+                    <button className="p-2 rounded hover:bg-blue-100" onClick={() => handleEdit(user.id)} title="Sửa">
+                      <PencilSquareIcon className="w-5 h-5 text-blue-600" />
+                    </button>
+                    <button className="p-2 rounded hover:bg-red-100" onClick={() => handleDelete(user.id)} title="Xóa">
+                      <TrashIcon className="w-5 h-5 text-red-600" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Form thêm/sửa ứng viên */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative" onSubmit={handleSubmit}>
+              <button type="button" className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded" onClick={() => { setShowForm(false); setSelectedCandidate(null); }}>
+                <XMarkIcon className="w-6 h-6 text-gray-500" />
+              </button>
+              <h3 className="text-xl font-bold mb-6 text-primary">{selectedCandidate ? 'Cập nhật ứng viên' : 'Thêm ứng viên mới'}</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-semibold mb-1">Họ tên</label>
+                  <input type="text" className="w-full px-4 py-2 border rounded" value={formData.fullname} onChange={e => setFormData({ ...formData, fullname: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Email</label>
+                  <input type="email" className="w-full px-4 py-2 border rounded" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Số điện thoại</label>
+                  <input type="text" className="w-full px-4 py-2 border rounded" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Mật khẩu {selectedCandidate && <span className="text-xs text-gray-400">(Để trống nếu không đổi)</span>}</label>
+                  <input type="password" className="w-full px-4 py-2 border rounded" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder={selectedCandidate ? '••••••••' : ''} required={!selectedCandidate} />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Trạng thái</label>
+                  <select className="w-full px-4 py-2 border rounded" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
+                    <option value="verified">Đã xác thực</option>
+                    <option value="unverified">Chưa xác thực</option>
+                    <option value="suspended">Tạm ngưng</option>
+                    <option value="banned">Bị cấm</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-2 justify-end">
+                <button className="px-4 py-2 bg-primary text-white rounded font-semibold flex items-center gap-1" type="submit">
+                  <CheckIcon className="w-5 h-5" /> {selectedCandidate ? 'Cập nhật' : 'Thêm mới'}
+                </button>
+                <button className="px-4 py-2 bg-gray-300 rounded font-semibold" type="button" onClick={() => { setShowForm(false); setSelectedCandidate(null); }}>Hủy</button>
+              </div>
+              {/* Quản lý CV của ứng viên */}
+              {selectedCandidate && (
+                <div className="mt-8">
+                  <h4 className="font-bold mb-2 flex items-center gap-2"><DocumentArrowDownIcon className="w-5 h-5 text-primary" />CV của ứng viên</h4>
+                  <button className="mb-2 px-3 py-1 bg-green-600 text-white rounded flex items-center gap-1" type="button" onClick={() => setShowResumeForm(true)}><PlusIcon className="w-4 h-4" /> Thêm CV</button>
+                  <ul className="list-disc ml-6">
+                    {resumes.map(r => (
+                      <li key={r.id} className="mb-1 flex items-center gap-2">
+                        <span>{r.title}</span>
+                        <button className="text-blue-600 underline flex items-center gap-1" type="button" onClick={() => handleViewResume(r.id, r.title)}><EyeIcon className="w-4 h-4" />Xem</button>
+                        <button className="text-red-500 underline flex items-center gap-1" type="button" onClick={() => handleDeleteResume(r.id)}><TrashIcon className="w-4 h-4" />Xóa</button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </form>
           </div>
-          <div className="mt-4 flex gap-2">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" type="submit">{selectedCandidate ? 'Cập nhật' : 'Thêm mới'}</button>
-            <button className="px-4 py-2 bg-gray-300 rounded" type="button" onClick={() => { setShowForm(false); setSelectedCandidate(null); }}>Hủy</button>
+        )}
+        {/* Form thêm CV */}
+        {showResumeForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative" onSubmit={handleAddResume}>
+              <button type="button" className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded" onClick={() => setShowResumeForm(false)}>
+                <XMarkIcon className="w-6 h-6 text-gray-500" />
+              </button>
+              <h4 className="font-bold mb-4 flex items-center gap-2"><PlusIcon className="w-5 h-5 text-primary" />Thêm CV mới</h4>
+              <input className="border p-2 rounded mb-2 w-full" placeholder="Tiêu đề CV" value={resumeTitle} onChange={e => setResumeTitle(e.target.value)} required />
+              <input className="border p-2 rounded mb-2 w-full" type="file" accept="application/pdf" onChange={e => setResumeFile(e.target.files[0])} required />
+              <div className="flex gap-2 justify-end">
+                <button className="px-4 py-2 bg-primary text-white rounded font-semibold flex items-center gap-1" type="submit"><CheckIcon className="w-5 h-5" /> Thêm</button>
+                <button className="px-4 py-2 bg-gray-300 rounded font-semibold" type="button" onClick={() => setShowResumeForm(false)}>Hủy</button>
+              </div>
+            </form>
           </div>
-          {/* Quản lý CV của ứng viên */}
-          {selectedCandidate && (
-            <div className="mt-8">
-              <h4 className="font-bold mb-2">CV của ứng viên</h4>
-              <button className="mb-2 px-3 py-1 bg-green-600 text-white rounded" type="button" onClick={() => setShowResumeForm(true)}>Thêm CV</button>
-              <ul className="list-disc ml-6">
-                {resumes.map(r => (
-                  <li key={r.id} className="mb-1 flex items-center gap-2">
-                    <span>{r.title}</span>
-                    <button className="text-blue-600 underline" type="button" onClick={() => handleViewResume(r.id, r.title)}>Xem</button>
-                    <button className="text-red-500 underline" type="button" onClick={() => handleDeleteResume(r.id)}>Xóa</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </form>
-      )}
-      {/* Form thêm CV */}
-      {showResumeForm && (
-        <form className="bg-white rounded-xl shadow p-6 mb-6" onSubmit={handleAddResume}>
-          <h4 className="font-bold mb-2">Thêm CV mới</h4>
-          <input className="border p-2 rounded mb-2 w-full" placeholder="Tiêu đề CV" value={resumeTitle} onChange={e => setResumeTitle(e.target.value)} required />
-          <input className="border p-2 rounded mb-2 w-full" type="file" accept="application/pdf" onChange={e => setResumeFile(e.target.files[0])} required />
-          <div className="flex gap-2">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" type="submit">Thêm</button>
-            <button className="px-4 py-2 bg-gray-300 rounded" type="button" onClick={() => setShowResumeForm(false)}>Hủy</button>
-          </div>
-        </form>
-      )}
+        )}
+      </div>
     </div>
   );
 }

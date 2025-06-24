@@ -10,6 +10,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 public class EmailService {
@@ -18,6 +19,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Async
     public void sendActivationEmail(String to, String token) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -31,6 +33,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendinterview(String to, String subject, String bodyHtml) {
         MimeMessage message = mailSender.createMimeMessage();
         try {
@@ -41,9 +44,8 @@ public class EmailService {
 
             mailSender.send(message);
             logger.info("Interview email sent to {}", to);
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             logger.error("Failed to send interview email to {}: {}", to, e.getMessage());
-            throw new RuntimeException("Failed to send email", e);
         }
     }
 

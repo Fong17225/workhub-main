@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/workhub/api/v1/forgot-password",
                                 "/workhub/api/v1/join/interview/**",
                                 "/workhub/api/v1/interview-sessions/join/**",
+                                "/workhub/api/v1/interview-sessions/test-email",
                                 "/workhub/api/v1/jobs",
                                 "/workhub/api/v1/jobs/**",
                                 "/error/**",

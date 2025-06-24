@@ -14,7 +14,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import CreateSessionAndSlots from './pages/CreateSessionAndSlots';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminJobs from './pages/admin/AdminJobs';
-import AdminCompanies from './pages/admin/AdminCompanies';
 import AdminStats from './pages/admin/AdminStats';
 import AdminApplications from './pages/admin/AdminApplications';
 import AdminCandidates from './pages/admin/AdminCandidates';
@@ -32,6 +31,9 @@ import AdminRecruiterPackages from './pages/admin/AdminRecruiterPackages';
 import RecruiterJobManager from './pages/recruiter/RecruiterJobManager';
 import RecruiterCVList from './pages/recruiter/RecruiterCVList';
 import RecruiterCreateJob from './pages/recruiter/RecruiterCreateJob';
+import RecruiterJobList from './pages/recruiter/RecruiterJobList';
+import AdminInterviewSessions from './pages/admin/AdminInterviewSessions';
+import AdminInterviewSlots from './pages/admin/AdminInterviewSlots';
 
 function RequireRecruiterOrAdmin({ children }) {
   const token = localStorage.getItem('token');
@@ -72,7 +74,7 @@ function App() {
           <Route path="stats" element={<AdminStats />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="jobs" element={<AdminJobs />} />
-          <Route path="companies" element={<AdminCompanies />} />
+          <Route path="companies" element={<AdminCompanyManager />} />
           <Route path="applications" element={<AdminApplications />} />
           <Route path="candidates" element={<AdminCandidates />} />
           <Route path="company-manager" element={<AdminCompanyManager />} />
@@ -81,6 +83,8 @@ function App() {
           <Route path="job-categories" element={<AdminJobCategories />} />
           <Route path="service-packages" element={<AdminServicePackages />} />
           <Route path="recruiter-packages" element={<AdminRecruiterPackages />} />
+          <Route path="interview-sessions" element={<AdminInterviewSessions />} />
+          <Route path="interview-slots" element={<AdminInterviewSlots />} />
           {/* Thêm các route quản lý khác tại đây */}
         </Route>
         <Route
@@ -93,6 +97,7 @@ function App() {
                   <Route path="/" element={<Home />} />
                   <Route path="/jobs" element={<Jobs />} />
                   <Route path="/jobs/:id" element={<JobDetails />} />
+                  <Route path="/profile/:id" element={<Profile />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/interview-dashboard" element={<InterviewDashboard />} />
@@ -108,6 +113,15 @@ function App() {
                   <Route path="/recruiter/jobs" element={<RecruiterJobManager />} />
                   <Route path="/recruiter/cvs" element={<RecruiterCVList />} />
                   <Route path="/recruiter/create-job" element={<RecruiterCreateJob />} />
+                  <Route path="/recruiter/job-list" element={<RecruiterJobList />} />
+                  <Route
+                    path="/recruiter/jobs/:jobId/create-session"
+                    element={
+                      <RequireRecruiterOrAdmin>
+                        <CreateSessionAndSlots />
+                      </RequireRecruiterOrAdmin>
+                    }
+                  />
                 </Routes>
               </main>
               <Footer />

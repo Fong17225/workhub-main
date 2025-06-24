@@ -79,4 +79,8 @@ public class CompanyProfileService {
     public void deleteCompanyProfile(Integer id) {
         companyProfileRepository.deleteById(id);
     }
+
+    public List<CompanyProfile> getCompanyProfilesByRecruiter(User recruiter) {
+        return companyProfileRepository.findByRecruiter(recruiter);
+    }
 }

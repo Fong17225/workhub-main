@@ -1,5 +1,7 @@
 package gr3.workhub.service;
 
+import gr3.workhub.entity.ServicePackage;
+import gr3.workhub.entity.UserBenefits;
 import gr3.workhub.entity.UserPackage;
 import gr3.workhub.entity.UserPackageHistory;
 import gr3.workhub.repository.UserPackageHistoryRepository;
@@ -11,8 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct; // Add this import
-
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.List;
 

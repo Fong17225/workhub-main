@@ -59,8 +59,8 @@ public class UserController {
         User user = userOptional.get();
         user.setFullname(userDetails.getFullname());
         user.setEmail(userDetails.getEmail());
-        // Nếu password thay đổi, mã hóa lại
-        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty() && !userDetails.getPassword().equals(user.getPassword())) {
+        // Luôn mã hóa password mới nếu được gửi lên (không so sánh với cũ)
+        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         }
         user.setPhone(userDetails.getPhone());
@@ -77,5 +77,16 @@ public class UserController {
         if (!userRepository.existsById(id)) return ResponseEntity.notFound().build();
         userRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Lấy thông tin user hiện tại từ token JWT
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt)) {
+            return ResponseEntity.status(401).build();
+        }
+        String email = jwt.getSubject();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(404).build());
     }
 }

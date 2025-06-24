@@ -42,89 +42,84 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link to="/" className="flex justify-center">
-          <h2 className="text-3xl font-bold text-primary">WorkHub</h2>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 flex flex-col justify-center items-center py-12 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-10 flex flex-col items-center">
+        <Link to="/" className="mb-6 flex items-center gap-2 justify-center">
+          <img src="/workhub-logo.png" alt="WorkHub Logo" className="h-12 w-auto" />
         </Link>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Đăng ký tài khoản
-        </h2>
-      </div>
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Họ và tên</label>
-              <div className="mt-1">
-                <input
-                  name="fullName"
-                  type="text"
-                  required
-                  value={form.fullName}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                />
-              </div>
+        <h2 className="text-3xl text-dark mb-2 text-center font-heading">Đăng ký tài khoản</h2>
+        <p className="text-muted mb-8 text-center">Tạo tài khoản để bắt đầu hành trình sự nghiệp cùng WorkHub.</p>
+        <form className="w-full space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1">Họ và tên</label>
+            <div className="relative">
+              <input
+                name="fullName"
+                type="text"
+                required
+                value={form.fullName}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 rounded-full border border-border shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
+                placeholder="Nhập họ và tên..."
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <div className="mt-1">
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
-              <div className="mt-1">
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  value={form.password}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Xác nhận mật khẩu</label>
-              <div className="mt-1">
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                />
-              </div>
-            </div>
-            {error && (
-              <div className="text-red-500 text-sm">{error}</div>
-            )}
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-              >
-                {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-              </button>
-            </div>
-          </form>
-          <div className="mt-6 text-center text-sm">
-            Đã có tài khoản?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              Đăng nhập
-            </Link>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1">Email</label>
+            <div className="relative">
+              <input
+                name="email"
+                type="email"
+                required
+                value={form.email}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 rounded-full border border-border shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
+                placeholder="Nhập email..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1">Mật khẩu</label>
+            <div className="relative">
+              <input
+                name="password"
+                type="password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 rounded-full border border-border shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
+                placeholder="Nhập mật khẩu..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1">Xác nhận mật khẩu</label>
+            <div className="relative">
+              <input
+                name="confirmPassword"
+                type="password"
+                required
+                value={form.confirmPassword}
+                onChange={handleChange}
+                className="block w-full px-4 py-3 rounded-full border border-border shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
+                placeholder="Nhập lại mật khẩu..."
+              />
+            </div>
+          </div>
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-full bg-primary text-white font-bold text-lg shadow hover:bg-accent transition disabled:opacity-60"
+          >
+            {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+          </button>
+        </form>
+        <div className="mt-8 w-full text-center text-sm text-muted">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="text-primary font-semibold hover:underline">Đăng nhập</Link>
         </div>
       </div>
     </div>
