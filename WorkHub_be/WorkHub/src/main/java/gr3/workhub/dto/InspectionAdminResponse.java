@@ -6,7 +6,6 @@ import gr3.workhub.entity.User;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Base64;
 
 @Data
 public class InspectionAdminResponse {
@@ -45,14 +44,14 @@ public class InspectionAdminResponse {
     public static InspectionAdminResponse from(Inspection i) {
         User sender = i.getSender();
         CompanyProfile cp = i.getCompanyProfile();
-        String logoBase64 = cp.getLogo() != null ? Base64.getEncoder().encodeToString(cp.getLogo()) : null;
+        String logoUrl = cp.getLogoUrl();
         return new InspectionAdminResponse(
                 i.getId(),
                 sender.getFullname(),
                 sender.getPhone(),
                 sender.getEmail(),
                 cp.getName(),
-                logoBase64,
+                logoUrl,
                 i.getSentAt(),
                 i.getReviewedAt(),
                 cp.getStatus(),

@@ -29,7 +29,7 @@ public class CompanyProfileService {
         company.setLocation(dto.getLocation());
         company.setDescription(dto.getDescription());
         company.setWebsite(dto.getWebsite());
-        company.setLogo(dto.getLogo()); // dto.getLogo() should return byte[]
+        company.setLogoUrl(dto.getLogoUrl());
         company.setInspectionStatus(CompanyProfile.InspectionStatus.none);
         company.setInspection(CompanyProfile.Inspection.valueOf(dto.getInspection()));
         company.setStatus(CompanyProfile.Status.valueOf(dto.getStatus()));
@@ -69,7 +69,7 @@ public class CompanyProfileService {
         if (dto.getLocation() != null) company.setLocation(dto.getLocation());
         if (dto.getDescription() != null) company.setDescription(dto.getDescription());
         if (dto.getWebsite() != null) company.setWebsite(dto.getWebsite());
-        if (dto.getLogo() != null) company.setLogo(dto.getLogo());
+        if (dto.getLogoUrl() != null) company.setLogoUrl(dto.getLogoUrl());
         if (dto.getInspection() != null) company.setInspection(CompanyProfile.Inspection.valueOf(dto.getInspection()));
         if (dto.getStatus() != null) company.setStatus(CompanyProfile.Status.valueOf(dto.getStatus()));
         if (dto.getInspectionStatus() != null) company.setInspectionStatus(CompanyProfile.InspectionStatus.valueOf(dto.getInspectionStatus()));

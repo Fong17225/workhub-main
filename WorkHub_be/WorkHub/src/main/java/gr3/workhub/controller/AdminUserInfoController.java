@@ -56,7 +56,7 @@ public class AdminUserInfoController {
         return ResponseEntity.ok(resumes);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('RECRUITER') or hasRole('recruiter') or hasRole('USER') or hasRole('user')")
     @GetMapping("/applications/user/{userId}")
     public ResponseEntity<List<AppliedJobsDTO>> getApplicationsByUserDirect(@PathVariable Integer userId) {
         List<AppliedJobsDTO> apps = applicationService.getAppliedJobsByUserId(userId);

@@ -85,7 +85,7 @@ export const getRecruiters = (config = {}) =>
 export const updateJob = (jobId, data, config) => axios.put(`${API_BASE_URL}/jobs/${jobId}`, data, config);
 export const createJob = (data, config) => axios.post(`${API_BASE_URL}/jobs`, data, config);
 export const getAdminJobs = (config) => axios.get(`${API_BASE_URL}/admin/jobs`, config);
-export const getApplicationsByJobId = (jobId, config) => axios.get(`${API_BASE_URL}/admin/jobs/${jobId}/applications`, config);
+export const getApplicationsByJobId = (jobId, config) => axios.get(`${API_BASE_URL}/applications/${jobId}/resumes`, config);
 export const addUserToJob = (jobId, candidateId, resumeId, config) =>
   axios.post(`${API_BASE_URL}/admin/jobs/${jobId}/applications`, { candidateId, resumeId }, config);
 
@@ -174,6 +174,7 @@ export const getUserPackages = (userId, config) => axios.get(`${API_BASE_URL}/us
 export const updateUserPackage = (id, data, config) => axios.put(`${API_BASE_URL}/user-packages/${id}`, data, config);
 export const deleteUserPackage = (id, config) => axios.delete(`${API_BASE_URL}/user-packages/${id}`, config);
 export const createUserPackage = (data, config) => axios.post(`${API_BASE_URL}/user-packages`, data, config);
+export const getAllUserPackages = (config) => axios.get(`${API_BASE_URL}/user-packages`, config);
 
 // Notification WebSocket (STOMP) - native WebSocket only, không dùng SockJS để tránh lỗi global
 export function createNotificationSocket(userId, onMessage) {
@@ -211,3 +212,29 @@ export const capturePaypalOrder = (orderId) =>
   axios.post(`${API_BASE_URL}/payments/paypal/capture`, null, {
     params: { orderId },
   }).then(res => res.data);
+export const deleteJob = (jobId, config = {}) => {
+  const token = localStorage.getItem('token');
+  if (!config.headers) config.headers = {};
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return axios.delete(`${API_BASE_URL}/jobs/${jobId}`, config);
+};
+export const getViewedResumeIdsByRecruiter = (recruiterId, config) => axios.get(`${API_BASE_URL}/resume-views/by-recruiter/${recruiterId}`, config);
+export const getApplicationsByJob = (jobId, config) => axios.get(`${API_BASE_URL}/applications/${jobId}/resumes`, config);
+export const closeJob = (jobId, config) => axios.put(`${API_BASE_URL}/jobs/${jobId}/close`, null, config);
+// Upload ảnh lên Imgur, trả về link ảnh
+export const uploadImageToImgur = async (file) => {
+  const clientId = 'YOUR_IMGUR_CLIENT_ID'; // Thay bằng client ID thực tế
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await axios.post('https://api.imgur.com/3/image', formData, {
+      headers: {
+        Authorization: `Client-ID ${clientId}`,
+      },
+    });
+    return res.data.data.link;
+  } catch (err) {
+    console.error('Lỗi upload ảnh lên Imgur:', err);
+    throw err;
+  }
+};

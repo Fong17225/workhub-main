@@ -34,6 +34,11 @@ import RecruiterCreateJob from './pages/recruiter/RecruiterCreateJob';
 import RecruiterJobList from './pages/recruiter/RecruiterJobList';
 import AdminInterviewSessions from './pages/admin/AdminInterviewSessions';
 import AdminInterviewSlots from './pages/admin/AdminInterviewSlots';
+import RecruiterJobApplications from './pages/recruiter/RecruiterJobApplications';
+import RecruiterJobDetail from './pages/recruiter/RecruiterJobDetail';
+import Companies from './pages/Companies';
+import CompanyDetail from './pages/CompanyDetail';
+import Pricing from './pages/Pricing';
 
 function RequireRecruiterOrAdmin({ children }) {
   const token = localStorage.getItem('token');
@@ -112,6 +117,7 @@ function App() {
                   <Route path="/create-company" element={<CreateCompany />} />
                   <Route path="/recruiter/jobs" element={<RecruiterJobManager />} />
                   <Route path="/recruiter/cvs" element={<RecruiterCVList />} />
+                  <Route path="/recruiter/cv-list" element={<RecruiterCVList />} />
                   <Route path="/recruiter/create-job" element={<RecruiterCreateJob />} />
                   <Route path="/recruiter/job-list" element={<RecruiterJobList />} />
                   <Route
@@ -122,6 +128,11 @@ function App() {
                       </RequireRecruiterOrAdmin>
                     }
                   />
+                  <Route path="/recruiter/jobs/:jobId/applications" element={<RequireRecruiterOrAdmin><RecruiterJobApplications /></RequireRecruiterOrAdmin>} />
+                  <Route path="/recruiter/jobs/:jobId/detail" element={<RequireRecruiterOrAdmin><RecruiterJobDetail /></RequireRecruiterOrAdmin>} />
+                  <Route path="/companies" element={<Companies />} />
+                  <Route path="/company/:id" element={<CompanyDetail />} />
+                  <Route path="/pricing" element={<Pricing />} />
                 </Routes>
               </main>
               <Footer />

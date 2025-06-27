@@ -52,4 +52,16 @@ public class ResumeViewController {
         repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PreAuthorize("hasRole('RECRUITER')")
+    @GetMapping("/by-recruiter/{recruiterId}")
+    public ResponseEntity<List<Integer>> getViewedResumeIdsByRecruiter(@PathVariable Integer recruiterId) {
+        List<ResumeView> views = repository.findAll();
+        List<Integer> resumeIds = views.stream()
+            .filter(v -> v.getRecruiter().getId().equals(recruiterId))
+            .map(v -> v.getResume().getId())
+            .distinct()
+            .toList();
+        return ResponseEntity.ok(resumeIds);
+    }
 }

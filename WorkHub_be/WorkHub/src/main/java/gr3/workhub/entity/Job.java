@@ -92,6 +92,10 @@ public class Job {
     @JoinColumn(name = "session_id")
     private InterviewSession interviewSession;
 
+    @Column(nullable = false)
+    @Schema(description = "Trạng thái job: open/closed", example = "open")
+    private String status = "open";
+
     public enum PostAt {
         @Schema(description = "Bài đăng đề xuất hiển thị nổi bật")
         proposal,

@@ -18,7 +18,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import ArticleIcon from '@mui/icons-material/Article';
 import Dashboard from './Dashboard';
 import { 
-  getSavedJobs, getAppliedJobs, getUserResumes, saveJob, unsaveJob, createResume, deleteResume, getResumeFileBase64, getCurrentUser, getUserById, getCompanyById, getCompanyByRecruiter
+  getSavedJobs, getAppliedJobs, getUserResumes, saveJob, unsaveJob, createResume, deleteResume, getResumeFileBase64, getCurrentUser, getUserById, getCompanyById, getCompanyByRecruiter, updateCompanyById, uploadImageToImgur, getUserPackages
 } from '../apiService';
 import axios from 'axios';
 
@@ -35,6 +35,8 @@ const Profile = () => {
   const [removingJobId, setRemovingJobId] = useState(null);
   const [localSavedJobs, setLocalSavedJobs] = useState([]);
   const [company, setCompany] = useState(null);
+  const [userPackages, setUserPackages] = useState([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(false);
 
   // Lấy id user hiện tại từ token (nếu có)
   let currentUserId = null;
@@ -223,6 +225,16 @@ const Profile = () => {
     fetchCompany();
   }, [user]);
 
+  useEffect(() => {
+    if (user && user.id) {
+      setIsLoadingPackages(true);
+      getUserPackages(user.id, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        .then(res => setUserPackages(res.data))
+        .catch(() => setUserPackages([]))
+        .finally(() => setIsLoadingPackages(false));
+    }
+  }, [user, token]);
+
   if (isLoadingUser) return <div>Đang tải thông tin người dùng...</div>;
   if (!user || !user.id) {
     return (
@@ -368,38 +380,18 @@ const Profile = () => {
                   <PersonIcon /> Thông tin cá nhân
                 </button>
                 {isRecruiter && (
-                  <button
-                    onClick={() => setActiveTab('company')}
-                    className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'company' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
-                  >
-                    <Work /> Thông tin công ty
-                  </button>
-                )}
-                {!isRecruiter && (
                   <>
                     <button
-                      onClick={() => setActiveTab('resume')}
-                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'resume' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                      onClick={() => setActiveTab('company')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'company' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
                     >
-                      <ArticleIcon /> Quản lý CV
+                      <Work /> Thông tin công ty
                     </button>
                     <button
-                      onClick={() => setActiveTab('saved')}
-                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'saved' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
+                      onClick={() => setActiveTab('purchase-history')}
+                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'purchase-history' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
                     >
-                      <Bookmark /> Việc đã lưu
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('applied')}
-                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'applied' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
-                    >
-                      <History /> Việc đã ứng tuyển
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('notification')}
-                      className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition ${activeTab === 'notification' ? 'bg-primary text-white' : 'text-dark hover:bg-primary/10'}`}
-                    >
-                      <Settings /> Thông báo
+                      <History /> Lịch sử mua gói
                     </button>
                   </>
                 )}
@@ -425,15 +417,13 @@ const Profile = () => {
             {isRecruiter && activeTab === 'company' && (
               <div className="bg-white rounded-2xl shadow p-8 mb-8">
                 <h2 className="text-2xl font-bold mb-4 text-primary">Thông tin công ty</h2>
-                {company ? (
-                  <div className="space-y-2 text-lg">
-                    <div><span className="font-semibold">Tên công ty:</span> {company.name}</div>
-                    <div><span className="font-semibold">Email công ty:</span> {company.email}</div>
-                    <div><span className="font-semibold">Địa chỉ:</span> {company.location}</div>
-                    <div><span className="font-semibold">Ngành nghề:</span> {company.industry}</div>
-                    <div><span className="font-semibold">Website:</span> <a href={company.website} className="text-primary underline" target="_blank" rel="noopener noreferrer">{company.website}</a></div>
-                    <div><span className="font-semibold">Mô tả:</span> {company.description}</div>
+                {company && company.logoUrl && (
+                  <div className="flex justify-center mb-6">
+                    <img src={company.logoUrl} alt="Logo công ty" className="h-24 w-24 object-contain rounded-full border-4 border-primary shadow" />
                   </div>
+                )}
+                {company ? (
+                  <CompanyInfoWithEdit company={company} setCompany={setCompany} />
                 ) : (
                   <div className="text-gray-500">Chưa có thông tin công ty.</div>
                 )}
@@ -571,11 +561,159 @@ const Profile = () => {
                 <NotificationList userId={user.id} />
               </div>
             )}
+            {isRecruiter && activeTab === 'purchase-history' && (
+              <div className="bg-white rounded-2xl shadow p-8 mb-8">
+                <h2 className="text-2xl font-bold mb-4 text-primary">Lịch sử mua gói dịch vụ</h2>
+                {isLoadingPackages ? (
+                  <div>Đang tải...</div>
+                ) : userPackages && userPackages.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm border rounded-xl overflow-hidden shadow">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800">
+                          <th className="px-4 py-3 font-bold text-left">Tên gói</th>
+                          <th className="px-4 py-3 font-bold text-left">Giá</th>
+                          <th className="px-4 py-3 font-bold text-left">Ngày mua</th>
+                          <th className="px-4 py-3 font-bold text-left">Ngày hết hạn</th>
+                          <th className="px-4 py-3 font-bold text-left">Trạng thái</th>
+                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userPackages.map((pkg, idx) => (
+                          <tr key={pkg.id || idx} className="border-b hover:bg-blue-50 transition">
+                            <td className="px-4 py-2 font-semibold text-blue-700">{pkg.servicePackageName || pkg.servicePackage?.name || '-'}</td>
+                            <td className="px-4 py-2 text-primary">{pkg.price ? pkg.price.toLocaleString('vi-VN') + ' VNĐ' : '-'}</td>
+                            <td className="px-4 py-2">{pkg.purchaseDate ? new Date(pkg.purchaseDate).toLocaleString() : '-'}</td>
+                            <td className="px-4 py-2">{pkg.expirationDate ? new Date(pkg.expirationDate).toLocaleString() : '-'}</td>
+                            <td className="px-4 py-2">
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${pkg.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{pkg.status === 'active' ? 'Đang sử dụng' : 'Đã hết hạn'}</span>
+                            </td>
+                            
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div>Bạn chưa từng mua gói dịch vụ nào.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+// Thay thế CompanyEditForm bằng CompanyInfoWithEdit
+function CompanyInfoWithEdit({ company, setCompany }) {
+  const [editing, setEditing] = useState(false);
+  return editing ? (
+    <CompanyEditForm company={company} setCompany={setCompany} onCancel={() => setEditing(false)} onSaved={() => setEditing(false)} />
+  ) : (
+    <div className="space-y-2 text-lg">
+      <div><span className="font-semibold">Tên công ty:</span> {company.name}</div>
+      <div><span className="font-semibold">Địa chỉ:</span> {company.location}</div>
+      <div><span className="font-semibold">Ngành nghề:</span> {company.industry}</div>
+      <div><span className="font-semibold">Website:</span> <a href={company.website} className="text-primary underline" target="_blank" rel="noopener noreferrer">{company.website}</a></div>
+      <div><span className="font-semibold">Mô tả:</span> {company.description}</div>
+      {company.logoUrl && <div><span className="font-semibold">Logo:</span><br/><img src={company.logoUrl} alt="Logo" className="h-16 mt-2" /></div>}
+      <button className="mt-4 px-6 py-2 rounded-full bg-primary text-white font-bold hover:bg-accent transition" onClick={() => setEditing(true)}>
+        Sửa thông tin
+      </button>
+    </div>
+  );
+}
+
+// Sửa CompanyEditForm để nhận onCancel, onSaved
+function CompanyEditForm({ company, setCompany, onCancel, onSaved }) {
+  const [form, setForm] = useState({
+    name: company.name || '',
+    location: company.location || '',
+    industry: company.industry || '',
+    website: company.website || '',
+    description: company.description || '',
+    logoUrl: company.logoUrl || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleChange = e => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleLogoChange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true);
+    setMessage('Đang upload logo...');
+    try {
+      const link = await uploadImageToImgur(file);
+      setForm(f => ({ ...f, logoUrl: link }));
+      setMessage('Upload thành công!');
+    } catch {
+      setMessage('Upload thất bại!');
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('Đang cập nhật...');
+    try {
+      const token = localStorage.getItem('token');
+      await updateCompanyById(company.id, form, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      setCompany({ ...company, ...form });
+      setMessage('Cập nhật thành công!');
+      if (onSaved) onSaved();
+    } catch (err) {
+      setMessage('Cập nhật thất bại!');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div>
+        <label className="block font-semibold mb-1">Tên công ty</label>
+        <input name="name" value={form.name} onChange={handleChange} className="w-full px-4 py-2 border rounded" />
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Địa chỉ</label>
+        <input name="location" value={form.location} onChange={handleChange} className="w-full px-4 py-2 border rounded" />
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Ngành nghề</label>
+        <input name="industry" value={form.industry} onChange={handleChange} className="w-full px-4 py-2 border rounded" />
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Website</label>
+        <input name="website" value={form.website} onChange={handleChange} className="w-full px-4 py-2 border rounded" />
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Mô tả</label>
+        <textarea name="description" value={form.description} onChange={handleChange} className="w-full px-4 py-2 border rounded" />
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Logo công ty (link hoặc upload)</label>
+        <input name="logoUrl" value={form.logoUrl} onChange={handleChange} className="w-full px-4 py-2 border rounded mb-2" placeholder="Dán link ảnh hoặc upload bên dưới" />
+        <input type="file" accept="image/*" onChange={handleLogoChange} />
+        {form.logoUrl && <img src={form.logoUrl} alt="Logo" className="h-16 mt-2" />}
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" className="px-6 py-2 rounded-full bg-primary text-white font-bold hover:bg-accent transition" disabled={loading}>
+          {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
+        <button type="button" className="px-6 py-2 rounded-full bg-gray-300 text-dark font-bold hover:bg-gray-400 transition" onClick={onCancel} disabled={loading}>
+          Hủy
+        </button>
+      </div>
+      {message && <div className="mt-2 text-sm text-primary">{message}</div>}
+    </form>
+  );
+}
 
 export default Profile;

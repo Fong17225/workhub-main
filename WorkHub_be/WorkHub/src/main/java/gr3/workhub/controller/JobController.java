@@ -106,4 +106,16 @@ public class JobController {
         JobResponse jobResponse = jobService.getJobById(id);
         return ResponseEntity.ok(jobResponse);
     }
+
+    @Operation(
+        summary = "Đóng job (chuyển trạng thái job sang closed)",
+        description = "Recruiter hoặc admin đóng job. Lấy userId từ JWT token trong header Authorization"
+    )
+    @PutMapping("/{id}/close")
+    public ResponseEntity<Job> closeJob(
+            HttpServletRequest request,
+            @Parameter(description = "ID của công việc") @PathVariable Integer id) {
+        Job closedJob = jobService.closeJobByUserId(request, id);
+        return ResponseEntity.ok(closedJob);
+    }
 }

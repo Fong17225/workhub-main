@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +41,16 @@ public class UserBenefitsService {
     }
 
     public UserBenefits findByUserId(Integer userId) {
-        return userBenefitsRepository.findByUserId(userId)
+        // Lấy tất cả UserBenefits của user, chọn bản ghi quota lớn nhất hoặc bản ghi đầu tiên
+        return userBenefitsRepository.findAll().stream()
+                .filter(ub -> ub.getUser().getId().equals(userId))
+                .max(java.util.Comparator.comparingInt(ub -> ub.getJobPostLimit() != null ? ub.getJobPostLimit() : 0))
                 .orElse(null);
+    }
+
+    public List<UserBenefits> getAllBenefitsByUserId(Integer userId) {
+        return userBenefitsRepository.findAll().stream()
+            .filter(ub -> ub.getUser().getId().equals(userId))
+            .toList();
     }
 }

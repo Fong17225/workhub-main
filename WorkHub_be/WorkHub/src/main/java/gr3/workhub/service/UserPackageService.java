@@ -114,10 +114,20 @@ public class UserPackageService {
         // Xóa UserBenefits liên quan trước (nếu có)
         userBenefitsRepository.deleteAllByUserPackageId(Long.valueOf(id));
         // Xóa toàn bộ lịch sử gói của user trước khi xóa UserPackage
-        // Sửa lại: xóa theo userId thay vì userPackageId
         UserPackage userPackage = userPackageRepository.findById(id).orElse(null);
         if (userPackage != null && userPackage.getUser() != null) {
             userPackageHistoryRepository.deleteAllByUserId(userPackage.getUser().getId());
+            // Nếu user không còn gói nào active, chuyển về candidate
+            Integer userId = userPackage.getUser().getId();
+            List<UserPackage> remain = userPackageRepository.findByUserId(userId);
+            boolean hasActive = remain.stream().anyMatch(pkg -> pkg.getStatus() == UserPackage.Status.active && (pkg.getExpirationDate() == null || pkg.getExpirationDate().isAfter(java.time.LocalDateTime.now())));
+            if (!hasActive) {
+                var user = userRepository.findById(userId).orElse(null);
+                if (user != null && user.getRole() == User.Role.recruiter) {
+                    user.setRole(User.Role.candidate);
+                    userRepository.save(user);
+                }
+            }
         }
         userPackageRepository.deleteById(id);
     }
@@ -136,6 +146,14 @@ public class UserPackageService {
     }
 
     public UserPackage buyServicePackage(Integer userId, Integer packageId) {
+        // Kiểm tra nếu user đã sở hữu gói này và còn hiệu lực thì không cho mua lại
+        var now = java.time.LocalDateTime.now();
+        var existed = userPackageRepository.findByUserIdAndServicePackageId(userId, packageId)
+            .filter(pkg -> pkg.getExpirationDate() == null || pkg.getExpirationDate().isAfter(now))
+            .orElse(null);
+        if (existed != null) {
+            throw new IllegalStateException("Bạn đã sở hữu gói này, không thể mua lại.");
+        }
         var user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         var servicePackage = servicePackageRepository.findById(packageId).orElseThrow(() -> new IllegalArgumentException("ServicePackage not found"));
         // Nếu user là candidate thì chuyển thành recruiter

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -140,7 +141,7 @@ class ApiService {
 
   // Lấy thông tin profile ứng viên
   static Future<Map<String, dynamic>?> getProfile({String? token}) async {
-    final uri = Uri.parse(baseUrl + "/me");
+    final uri = Uri.parse(baseUrl + "/users/me");
     final response = await http.get(
       uri,
       headers: token != null ? { 'Authorization': 'Bearer $token' } : {},
@@ -149,6 +150,22 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load profile: ' + response.body);
+    }
+  }
+
+  // Upload CV (resume) file
+  static Future<void> uploadCV(File file, {String? token}) async {
+    final uri = Uri.parse(baseUrl + "/resumes/upload");
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Accept'] = 'application/json';
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Tải lên thất bại: ' + response.body);
     }
   }
 }

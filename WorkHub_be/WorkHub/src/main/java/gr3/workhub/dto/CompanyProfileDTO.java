@@ -15,7 +15,7 @@ public class CompanyProfileDTO {
     private String location;
     private String description;
     private String website;
-    private byte[] logo;
+    private String logoUrl;
     private String inspectionStatus;   // Enum: none, pending, approved, rejected
     private String inspection;         // Enum: none, prestige
     private String status;             // Enum: active, pending, inactive

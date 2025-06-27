@@ -28,13 +28,16 @@ export default function PaymentPage() {
   const qrValue = confirmUrl;
 
   const afterPayment = () => {
-    if (isUpgrade) {
-      setSuccess(true);
-      setTimeout(() => window.location.href = '/dashboard', 1200);
-    } else {
-      setSuccess(true);
-      setTimeout(() => window.location.href = '/create-company', 1200);
-    }
+    setSuccess(true);
+    setTimeout(() => {
+      if (isUpgrade) {
+        // Nếu là nâng cấp gói thì về dashboard nhà tuyển dụng
+        window.location.href = '/dashboard';
+      } else {
+        // Nếu là mua gói lần đầu thì sang trang tạo công ty
+        window.location.href = '/create-company';
+      }
+    }, 1200);
   };
 
   const handlePaid = async () => {

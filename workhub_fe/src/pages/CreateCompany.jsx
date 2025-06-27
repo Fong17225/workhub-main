@@ -18,12 +18,24 @@ export default function CreateCompany() {
     setMessage('');
     try {
       const { name, address, description, website, industry } = form;
-      const payload = { name, address, description, website, industry, inspection: 'none', inspectionStatus: 'pending', status: 'active' };
-      await createCompanyByRecruiter(userId, payload, { headers: { Authorization: `Bearer ${token}` } });
+      const payloadData = { name, address, description, website, industry, inspection: 'none', inspectionStatus: 'pending', status: 'active' };
+      await createCompanyByRecruiter(userId, payloadData, { headers: { Authorization: `Bearer ${token}` } });
       setMessage('Tạo công ty thành công!');
-      setTimeout(() => navigate('/dashboard'), 1200);
-    } catch {
+      // Cập nhật lại role trong localStorage (nếu có token)
+      if (token) {
+        try {
+          const userPayload = JSON.parse(atob(token.split('.')[1]));
+          userPayload.role = 'recruiter';
+          localStorage.setItem('user', JSON.stringify(userPayload));
+        } catch (e) {}
+      }
+      setTimeout(() => window.location.href = '/', 1200);
+    } catch (err) {
       setMessage('Tạo công ty thất bại!');
+      console.error('Lỗi tạo công ty:', err, { userId, token, payload: form });
+      if (err?.response?.data?.message) {
+        alert('Chi tiết lỗi: ' + err.response.data.message);
+      }
     }
     setLoading(false);
   };

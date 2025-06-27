@@ -112,7 +112,7 @@ const Home = () => {
           </div>
         </div>
       </section>
-<section className="py-16 bg-white border-t border-border">
+      <section className="py-16 bg-white border-t border-border">
         <div className="max-w-6xl mx-auto px-4">
           
           <FeaturedJobList jobs={featuredJobs} isLoading={isLoading} />
@@ -124,7 +124,7 @@ const Home = () => {
       <section className="py-16 bg-white border-t border-border">
         <div className="max-w-6xl mx-auto px-4">
           
-          <ServicePackageList />
+          <ServicePackageList user={user} />
         </div>
       </section>
     </div>

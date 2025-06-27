@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ResumeViewRepository extends JpaRepository<ResumeView, Integer> {
+    boolean existsByResume_IdAndRecruiter_Id(Integer resumeId, Integer recruiterId);
 }

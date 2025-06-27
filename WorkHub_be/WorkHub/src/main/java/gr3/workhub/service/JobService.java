@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +27,10 @@ public class JobService {
     private final UserBenefitsRepository userBenefitsRepository;
     private final TokenService tokenService;
     private final CompanyProfileRepository companyProfileRepository;
+    private final SavedJobRepository savedJobRepository;
+    private final ApplicationRepository applicationRepository;
+    private final InterviewSlotRepository interviewSlotRepository;
+    private final InterviewSessionRepository interviewSessionRepository;
     // Helper to initialize lazy relations
     private void initializeJobRelations(Job job) {
         Hibernate.initialize(job.getRecruiter());
@@ -42,8 +45,8 @@ public class JobService {
         List<CompanyProfile> cpList = companyProfileRepository.findByRecruiter(job.getRecruiter());
         CompanyProfile cp = cpList.isEmpty() ? null : cpList.get(0);
         String companyName = cp != null ? cp.getName() : null;
-        String companyLogo = (cp != null && cp.getLogo() != null)
-                ? "data:image/png;base64," + Base64.getEncoder().encodeToString(cp.getLogo())
+        String companyLogo = (cp != null && cp.getLogoUrl() != null && !cp.getLogoUrl().isEmpty())
+                ? cp.getLogoUrl()
                 : null;
         return new JobResponse(job, companyName, companyLogo);
     }
@@ -68,26 +71,20 @@ public class JobService {
         User recruiter = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Recruiter not found"));
 
-        Job.PostAt requestedPostAt = job.getPostAt() != null ? job.getPostAt() : Job.PostAt.standard;
-
         // Chỉ recruiter mới kiểm tra user_benefits và job_post_limit
         if (!"admin".equalsIgnoreCase(userRole)) {
-            UserBenefits userBenefits = userBenefitsRepository
-                    .findByUserAndPostAt(
-                            recruiter,
-                            UserBenefits.PostAt.valueOf(requestedPostAt.name())
-                    )
-                    .orElseThrow(() -> new IllegalArgumentException("User benefits not found for this post type"));
+            // Lấy tất cả userBenefits của recruiter
+            List<UserBenefits> allBenefits = userBenefitsRepository.findAll();
+            UserBenefits matched = allBenefits.stream()
+                .filter(ub -> ub.getUser().getId().equals(recruiter.getId())
+                        && (ub.getJobPostLimit() != null && ub.getJobPostLimit() > 0)
+                        && (ub.getUserPackage() != null && ub.getUserPackage().getExpirationDate() != null && ub.getUserPackage().getExpirationDate().isAfter(java.time.LocalDateTime.now()))
+                )
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Bạn không còn quota đăng tin, vui lòng mua thêm gói dịch vụ."));
 
-            if (!canPostAt(userBenefits.getPostAt(), requestedPostAt)) {
-                throw new IllegalArgumentException("You are not allowed to post at this level: " + requestedPostAt);
-            }
-
-            if (userBenefits.getJobPostLimit() == null || userBenefits.getJobPostLimit() <= 0) {
-                throw new IllegalArgumentException("You have reached your job post limit.");
-            }
-            userBenefits.setJobPostLimit(userBenefits.getJobPostLimit() - 1);
-            userBenefitsRepository.save(userBenefits);
+            matched.setJobPostLimit(matched.getJobPostLimit() - 1);
+            userBenefitsRepository.save(matched);
         }
 
         JobCategory category = jobCategoryRepository.findById(job.getCategory().getId())
@@ -95,21 +92,13 @@ public class JobService {
 
         JobType type = jobTypeRepository.findById(job.getType().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Type not found"));
-
         JobPosition position = jobPositionRepository.findById(job.getPosition().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Position not found"));
-
-        List<Skill> skills = job.getSkills().stream()
-                .map(skill -> skillRepository.findById(skill.getId())
-                        .orElseThrow(() -> new IllegalArgumentException("Skill not found with ID: " + skill.getId())))
-                .collect(Collectors.toList());
-
         job.setRecruiter(recruiter);
         job.setCategory(category);
         job.setType(type);
         job.setPosition(position);
-        job.setSkills(skills);
-        job.setPostAt(requestedPostAt);
+        job.setCreatedAt(java.time.LocalDateTime.now());
         Job savedJob = jobRepository.save(job);
         // Tạo các slot phỏng vấn nếu có
         if (slots != null) {
@@ -177,10 +166,6 @@ public class JobService {
         return jobRepository.save(existingJob);
     }
 
-
-
-
-
     public List<JobResponse> getJobsByPostAt(Job.PostAt postAt) {
         List<Job> jobs = jobRepository.findByPostAt(postAt);
         jobs.forEach(this::initializeJobRelations);
@@ -195,12 +180,48 @@ public class JobService {
         if (!job.getRecruiter().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized to delete this job");
         }
-
-        jobRepository.delete(job);
+        // Gọi logic xóa đầy đủ
+        deleteJobById(jobId);
     }
 
     public void deleteJobById(Integer jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+        User recruiter = job.getRecruiter();
+
+        // Xóa saved_jobs
+        savedJobRepository.deleteByJobId(jobId);
+        // Lấy tất cả slot liên quan đến job
+        List<InterviewSlot> slots = interviewSlotRepository.findByJobId(jobId);
+        // Xóa tất cả application liên quan đến job (bao gồm cả application có slot liên quan)
+        applicationRepository.deleteByJobId(jobId);
+        for (InterviewSlot slot : slots) {
+            applicationRepository.deleteByInterviewSlot_Id(slot.getId());
+        }
+        // Xóa interview slot theo jobId
+        for (InterviewSlot slot : slots) {
+            interviewSlotRepository.deleteById(slot.getId());
+        }
+        // Xóa interview session theo jobId
+        interviewSessionRepository.deleteByJob_Id(jobId);
+        // Xóa job
         jobRepository.deleteById(jobId);
+
+        // Cộng lại jobPostLimit cho recruiter (nếu không phải admin)
+        if (recruiter != null && recruiter.getRole() != null && recruiter.getRole().name().equalsIgnoreCase("recruiter")) {
+            // Tìm benefit còn hạn/quota nhỏ nhất (ưu tiên benefit quota thấp nhất)
+            List<UserBenefits> allBenefits = userBenefitsRepository.findAll();
+            UserBenefits benefit = allBenefits.stream()
+                .filter(ub -> ub.getUser().getId().equals(recruiter.getId())
+                        && (ub.getUserPackage() != null && ub.getUserPackage().getExpirationDate() != null && ub.getUserPackage().getExpirationDate().isAfter(java.time.LocalDateTime.now()))
+                )
+                .sorted((a, b) -> Integer.compare(a.getJobPostLimit() != null ? a.getJobPostLimit() : 0, b.getJobPostLimit() != null ? b.getJobPostLimit() : 0))
+                .findFirst().orElse(null);
+            if (benefit != null) {
+                benefit.setJobPostLimit((benefit.getJobPostLimit() != null ? benefit.getJobPostLimit() : 0) + 1);
+                userBenefitsRepository.save(benefit);
+            }
+        }
     }
 
     private boolean canPostAt(UserBenefits.PostAt allowed, Job.PostAt requested) {
@@ -271,5 +292,17 @@ public class JobService {
         existingJob.setPosition(position);
         existingJob.setSkills(skills);
         return jobRepository.save(existingJob);
+    }
+
+    public Job closeJobByUserId(HttpServletRequest request, Integer jobId) {
+        Integer userId = tokenService.extractUserIdFromRequest(request);
+        String userRole = tokenService.extractUserRoleFromRequest(request);
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found"));
+        if (!"admin".equalsIgnoreCase(userRole) && !job.getRecruiter().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized to close this job");
+        }
+        job.setStatus("closed");
+        return jobRepository.save(job);
     }
 }

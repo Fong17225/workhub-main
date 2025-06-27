@@ -134,13 +134,12 @@ public class ApplicationService {
                         app.getStatus().name(),
                         app.getAppliedAt(),
                         null, // Không trả về file trực tiếp
-                        app.getResume().getId() // Trả về resumeId
+                        app.getResume().getId(), // Trả về resumeId
+                        app.getResume().getContent() // Trả về mô tả CV
                 ))
                 .toList();
 
-        if (cvLimit != null && cvLimit > 0 && dtos.size() > cvLimit) {
-            return dtos.subList(0, cvLimit);
-        }
+        // BỎ GIỚI HẠN QUOTA CV
         return dtos;
     }
 
@@ -216,11 +215,32 @@ public class ApplicationService {
     }
 
     // Download resume by applicationId
-    public ApplicationDTO getApplicationDTOForResumeDownloadByApplicationId(Integer applicationId) {
+    public ApplicationDTO getApplicationDTOForResumeDownloadByApplicationId(Integer applicationId, Integer recruiterId) {
         Application app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found with ID: " + applicationId));
         Resume resume = app.getResume();
         String fullName = resume.getUser().getFullname();
+
+        // Lấy tất cả benefit còn hạn/quota
+        List<UserBenefits> allBenefits = userBenefitsService.getAllBenefitsByUserId(recruiterId);
+        UserBenefits userBenefits = allBenefits.stream()
+            .filter(ub -> ub.getCvLimit() != null && ub.getCvLimit() > 0
+                    && ub.getUserPackage() != null && ub.getUserPackage().getExpirationDate() != null && ub.getUserPackage().getExpirationDate().isAfter(java.time.LocalDateTime.now())
+            )
+            .findFirst().orElse(null);
+        if (userBenefits == null) {
+            throw new IllegalArgumentException("Bạn đã xem hết số lượng CV cho phép của các gói dịch vụ.");
+        }
+        userBenefits.setCvLimit(userBenefits.getCvLimit() - 1);
+        userBenefitsService.saveOrUpdateUserBenefits(
+            recruiterId,
+            userBenefits.getUserPackage().getId(),
+            userBenefits.getPostAt(),
+            userBenefits.getJobPostLimit(),
+            userBenefits.getCvLimit(),
+            userBenefits.getDescription()
+        );
+
         return new ApplicationDTO(
                 app.getJob().getTitle(),
                 fullName,

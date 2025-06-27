@@ -178,17 +178,17 @@ export default function AdminApplications() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {applications.filter(app =>
-                    app.candidateName?.toLowerCase().includes(search.toLowerCase()) ||
-                    app.candidateEmail?.toLowerCase().includes(search.toLowerCase()) ||
-                    app.jobTitle?.toLowerCase().includes(search.toLowerCase())
+                    (app.userFullname?.toLowerCase().includes(search.toLowerCase()) ||
+                     app.userEmail?.toLowerCase().includes(search.toLowerCase()) ||
+                     app.jobTitle?.toLowerCase().includes(search.toLowerCase()))
                   ).map(app => (
                     <tr key={app.id} className="hover:bg-blue-50 transition">
-                      <td className="px-4 py-2">{app.candidateName}</td>
-                      <td className="px-4 py-2">{app.candidateEmail}</td>
+                      <td className="px-4 py-2">{app.userFullname}</td>
+                      <td className="px-4 py-2">{app.userEmail}</td>
                       <td className="px-4 py-2">{app.jobTitle}</td>
                       <td className="px-4 py-2">{app.status}</td>
                       <td className="px-4 py-2 flex gap-2 justify-center">
-                        <button className="p-2 rounded hover:bg-blue-100" onClick={() => handleViewResume(app.resumeId, app.candidateName)} title="Xem CV">
+                        <button className="p-2 rounded hover:bg-blue-100" onClick={() => handleViewResume(app.resumeId, app.userFullname)} title="Xem CV">
                           <EyeIcon className="w-5 h-5 text-blue-600" />
                         </button>
                         <button className="p-2 rounded hover:bg-red-100" onClick={() => handleDelete(app.id)} title="Xóa">

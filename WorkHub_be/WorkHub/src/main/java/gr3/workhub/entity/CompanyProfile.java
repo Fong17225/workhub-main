@@ -30,9 +30,7 @@ public class CompanyProfile {
 
     private String website;
 
-    @Lob
-    @Column(name = "logo", columnDefinition = "LONGBLOB")
-    private byte[] logo;
+    private String logoUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "inspection_status", nullable = false)

@@ -142,8 +142,8 @@ public class ResumeController {
             description = "Returns the resume file (CV) as a Base64-encoded string for the given resumeId. Usable by both candidate and recruiter."
     )
     @GetMapping("/{resumeId}/file-base64")
-    public ResponseEntity<String> getResumeFileBase64(@PathVariable Integer resumeId) {
-        String base64 = resumeService.getResumeFileBase64(resumeId);
+    public ResponseEntity<String> getResumeFileBase64(@PathVariable Integer resumeId, HttpServletRequest request) {
+        String base64 = resumeService.getResumeFileBase64WithQuotaCheck(resumeId, request);
         return ResponseEntity.ok().body(base64);
     }
 

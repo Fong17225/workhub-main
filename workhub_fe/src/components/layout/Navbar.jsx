@@ -53,7 +53,7 @@ function Navbar() {
               <Link to="/jobs" className="hover:text-primary transition">Việc làm</Link>
               <Link to="/companies" className="hover:text-primary transition">Công ty</Link>
               <Link to="/pricing" className="hover:text-primary transition">Bảng giá</Link>
-              <Link to="/about" className="hover:text-primary transition">Về chúng tôi</Link>
+              
             </div>
           </div>
           <div className="flex items-center gap-4">

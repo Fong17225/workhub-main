@@ -5,6 +5,7 @@ import gr3.workhub.dto.AppliedJobsDTO;
 import gr3.workhub.entity.Application;
 import gr3.workhub.service.ApplicationService;
 import gr3.workhub.service.ResumeService;
+import gr3.workhub.service.TokenService;
 import gr3.workhub.service.UserBenefitsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +30,7 @@ public class ApplicationController {
     private final ApplicationService applicationService;
     private final ResumeService resumeService;
     private final UserBenefitsService userBenefitsService;
+    private final TokenService tokenService;
 
     @Operation(
             summary = "<EndPoint cho trang của ứng viên> Ứng tuyển công việc",
@@ -65,7 +67,8 @@ public class ApplicationController {
             application.getStatus() != null ? application.getStatus().toString() : null,
             application.getAppliedAt(),
             application.getResume() != null ? application.getResume().getFile() : null,
-            application.getResume() != null ? application.getResume().getId() : null
+            application.getResume() != null ? application.getResume().getId() : null,
+            application.getResume() != null ? application.getResume().getContent() : null // truyền content
         );
         return ResponseEntity.ok(dto);
     }
@@ -98,8 +101,10 @@ public class ApplicationController {
     )
     @GetMapping("/{applicationId}/resume/download")
     public ResponseEntity<byte[]> downloadResumeByApplicationId(
-            @Parameter(description = "ID của đơn ứng tuyển cần tải hồ sơ", example = "1") @PathVariable Integer applicationId) {
-        ApplicationDTO dto = applicationService.getApplicationDTOForResumeDownloadByApplicationId(applicationId);
+            @Parameter(description = "ID của đơn ứng tuyển cần tải hồ sơ", example = "1") @PathVariable Integer applicationId,
+            HttpServletRequest request) {
+        Integer recruiterId = tokenService.extractUserIdFromRequest(request);
+        ApplicationDTO dto = applicationService.getApplicationDTOForResumeDownloadByApplicationId(applicationId, recruiterId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dto.getUserFullname() + ".pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
